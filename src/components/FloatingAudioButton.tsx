@@ -2,21 +2,29 @@ import { useEffect, useRef, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import krishVoice from "@/assets/krish-1.mp3";
 
+let sharedAudio: HTMLAudioElement | null = null;
+
 const FloatingAudioButton = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
-    const audio = new Audio(krishVoice);
+    const audio = sharedAudio ?? new Audio(krishVoice);
+    sharedAudio = audio;
     audioRef.current = audio;
+    setIsPlaying(!audio.paused);
 
     const onEnded = () => setIsPlaying(false);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
     audio.addEventListener("ended", onEnded);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
 
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
       audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
     };
   }, []);
 
@@ -47,7 +55,7 @@ const FloatingAudioButton = () => {
     >
       <span className="absolute inset-2 rounded-full bg-[hsl(142,45%,42%)]/80" />
       <span className="relative z-10">
-        {isPlaying ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+        {isPlaying ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
       </span>
     </button>
   );

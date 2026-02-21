@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Phone, Mail, Send, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,53 @@ import { useToast } from "@/hooks/use-toast";
 
 const Contact = () => {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: "",
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Message Sent!", description: "We'll get back to you soon." });
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("https://formsubmit.co/ajax/rushivanagro@gmail.com", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          subject: form.subject,
+          message: form.message,
+          _subject: "New Contact Form Lead - Rushivan Agro",
+          _template: "table",
+          _captcha: "false",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit");
+      }
+
+      setForm({ name: "", email: "", phone: "", subject: "", message: "" });
+      toast({
+        title: "Your form is successfully submitted",
+      });
+    } catch {
+      toast({
+        title: "Submission Failed",
+        description: "Unable to submit right now. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -82,28 +125,59 @@ const Contact = () => {
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Name</label>
-                    <Input required placeholder="Your name" className="rounded-xl" />
+                    <Input
+                      required
+                      value={form.name}
+                      onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                      placeholder="Your name"
+                      className="rounded-xl"
+                    />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1.5 block">Email</label>
-                    <Input required type="email" placeholder="your@email.com" className="rounded-xl" />
+                    <Input
+                      required
+                      type="email"
+                      value={form.email}
+                      onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
+                      placeholder="your@email.com"
+                      className="rounded-xl"
+                    />
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Phone</label>
-                  <Input placeholder="+91 12137676" className="rounded-xl" />
+                  <Input
+                    value={form.phone}
+                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    placeholder="+91 12137676"
+                    className="rounded-xl"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Subject</label>
-                  <Input required placeholder="How can we help?" className="rounded-xl" />
+                  <Input
+                    required
+                    value={form.subject}
+                    onChange={(e) => setForm((prev) => ({ ...prev, subject: e.target.value }))}
+                    placeholder="How can we help?"
+                    className="rounded-xl"
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">Message</label>
-                  <Textarea required placeholder="Tell us more..." className="rounded-xl" rows={5} />
+                  <Textarea
+                    required
+                    value={form.message}
+                    onChange={(e) => setForm((prev) => ({ ...prev, message: e.target.value }))}
+                    placeholder="Tell us more..."
+                    className="rounded-xl"
+                    rows={5}
+                  />
                 </div>
-                <Button type="submit" size="lg" className="w-full rounded-full h-12">
+                <Button type="submit" size="lg" className="w-full rounded-full h-12" disabled={isSubmitting}>
                   <Send className="w-5 h-5 mr-2" />
-                  Send Message
+                  {isSubmitting ? "Submitting..." : "Send Message"}
                 </Button>
               </form>
             </motion.div>
@@ -115,3 +189,5 @@ const Contact = () => {
 };
 
 export default Contact;
+
+

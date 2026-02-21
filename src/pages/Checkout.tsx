@@ -16,6 +16,15 @@ interface CheckoutFormState {
   pincode: string;
 }
 
+interface CheckoutOrderItem {
+  product_id?: number;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const Checkout = () => {
   const { target } = useParams();
   const [searchParams] = useSearchParams();
@@ -40,6 +49,7 @@ const Checkout = () => {
         productName: stayLabel,
         amount: 5900,
         backTo: "/stay",
+        orderItems: [{ product_name: stayLabel, quantity: 1, unit_price: 5900 }] as CheckoutOrderItem[],
       };
     }
 
@@ -51,6 +61,12 @@ const Checkout = () => {
         productName: cartItems.map((item) => item.product.name).join(", "),
         amount: getCartTotal(),
         backTo: "/cart",
+        orderItems: cartItems.map((item) => ({
+          product_id: item.product.id,
+          product_name: item.product.name,
+          quantity: item.quantity,
+          unit_price: item.product.price,
+        })) as CheckoutOrderItem[],
       };
     }
 
@@ -67,6 +83,14 @@ const Checkout = () => {
       productName: `${product.name} (${selectedVariant.label})`,
       amount: selectedVariant.price,
       backTo: `/product/${product.id}`,
+      orderItems: [
+        {
+          product_id: product.id,
+          product_name: `${product.name} (${selectedVariant.label})`,
+          quantity: 1,
+          unit_price: selectedVariant.price,
+        },
+      ] as CheckoutOrderItem[],
     };
   }, [target, searchParams]);
 
@@ -107,7 +131,7 @@ const Checkout = () => {
 
     setIsPaying(true);
     try {
-      await openRazorpayCheckout({
+      const paymentResponse = await openRazorpayCheckout({
         amountInRupees: checkoutData.amount,
         productName: checkoutData.productName,
         customer: {
@@ -118,6 +142,29 @@ const Checkout = () => {
           pincode: form.pincode,
         },
       });
+
+      if (API_BASE_URL) {
+        await fetch(`${API_BASE_URL}/api/orders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            customer_name: form.fullName,
+            customer_email: form.email,
+            customer_phone: form.phone,
+            customer_address: form.address,
+            customer_pincode: form.pincode,
+            total_amount: checkoutData.amount,
+            payment_status: "Paid",
+            order_status: "Pending",
+            razorpay_order_id: paymentResponse.razorpay_order_id || "",
+            razorpay_payment_id: paymentResponse.razorpay_payment_id || "",
+            razorpay_signature: paymentResponse.razorpay_signature || "",
+            items: checkoutData.orderItems,
+          }),
+        });
+      }
+
+      alert("Payment successful.");
       if (target === "cart") {
         clearCart();
       }
