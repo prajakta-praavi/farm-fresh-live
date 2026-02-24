@@ -331,6 +331,7 @@ function ensureDefaultProducts(): void
         ['name' => 'Cowdung Dhup', 'category' => 'Gau Seva Products', 'price' => 50, 'unit' => '10 pieces', 'hsn_code' => '33074100', 'gst_rate' => 5, 'image_url' => '/products/dhup.png'],
         ['name' => 'Cowdung Diya', 'category' => 'Gau Seva Products', 'price' => 80, 'unit' => '10 pieces', 'hsn_code' => '31010099', 'gst_rate' => 5, 'image_url' => '/products/Cowdung%20Diya.png'],
         ['name' => 'Cowdung Cake', 'category' => 'Gau Seva Products', 'price' => 60, 'unit' => '10 pieces', 'hsn_code' => '31010092', 'gst_rate' => 5, 'image_url' => '/products/Cowdung%20cake.png'],
+        ['name' => 'Payment Test Product', 'category' => 'Natural Sweetness', 'price' => 1, 'unit' => '1pc', 'hsn_code' => '21069099', 'gst_rate' => 0, 'image_url' => '/products/honey.png'],
     ];
 
     $stmt = $pdo->prepare('

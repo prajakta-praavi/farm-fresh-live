@@ -345,6 +345,16 @@ export const products = [
       { label: "100", price: 600 },
     ],
   },
+  {
+    id: 25,
+    name: "Payment Test Product",
+    price: 1,
+    image: honeyImage,
+    category: "Natural Sweetness",
+    unit: "1pc",
+    hsnCode: "21069099",
+    variants: [{ label: "1pc", price: 1 }],
+  },
 ];
 
 export const categories = [
