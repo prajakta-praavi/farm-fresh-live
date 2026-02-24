@@ -450,7 +450,7 @@ const Index = () => {
                 Escape the city and immerse yourself in the tranquility of rural life. Wake up to birdsong, milk fresh cows, walk through organic fields, and enjoy farm-fresh meals under the stars.
               </p>
               <ul className="space-y-3 mb-8">
-                {["2 cozy cottage rooms", "Rs 5,000 per night + GST", "Up to 3 guests included", "Farm experiences & organic meals"].map((item) => (
+                {["2 cozy cottage rooms", "Stay for up to 12-15 people", "Farm experiences & homely healthy meals"].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-sm">
                     <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <span className="w-2 h-2 rounded-full bg-primary" />

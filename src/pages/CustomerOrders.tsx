@@ -32,7 +32,7 @@ const CustomerOrders = () => {
                 <td className="p-3">#{order.id}</td>
                 <td className="p-3">{order.order_status}</td>
                 <td className="p-3">{order.payment_status}</td>
-                <td className="p-3">Rs {order.total_amount}</td>
+                <td className="p-3">₹ {order.total_amount}</td>
                 <td className="p-3">{new Date(order.created_at).toLocaleString()}</td>
               </tr>
             ))}
@@ -52,4 +52,3 @@ const CustomerOrders = () => {
 };
 
 export default CustomerOrders;
-

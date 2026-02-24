@@ -71,8 +71,8 @@ const Footer = () => {
                 <p>Address: W27G+J3,</p>
                 <p>Chawaneshwar,</p>
                 <p>Maharashtra - 415525, India</p>
-                <p>Hours: Mon-Fri: 1:00 PM to 1:00 AM</p>
-                <p>Phone: +91 12137676</p>
+                <p>Phone: +91 9112137676</p>
+                <p>Phone: +91 7774041569</p>
               </div>
             </div>
 

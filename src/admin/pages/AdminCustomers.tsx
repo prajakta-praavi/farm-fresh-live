@@ -138,7 +138,7 @@ const AdminCustomers = () => {
                   <p>
                     <span className="font-semibold">Order #{order.id}</span> | {order.order_status} | {order.payment_status}
                   </p>
-                  <p>Total: Rs {order.total_amount}</p>
+                  <p>Total: ₹ {order.total_amount}</p>
                   <p>Date: {new Date(order.created_at).toLocaleString()}</p>
                 </div>
               ))
@@ -153,4 +153,3 @@ const AdminCustomers = () => {
 };
 
 export default AdminCustomers;
-
