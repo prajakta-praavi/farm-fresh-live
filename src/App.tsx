@@ -33,6 +33,7 @@ import CustomerOrders from "@/pages/CustomerOrders";
 import CustomerProfile from "@/pages/CustomerProfile";
 import CustomerProtectedRoute from "@/components/customer/CustomerProtectedRoute";
 import CustomerLayout from "@/components/customer/CustomerLayout";
+import SeoManager from "@/components/SeoManager";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <SeoManager />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/about" element={<About />} />
