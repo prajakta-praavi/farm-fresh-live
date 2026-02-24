@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&family=Playfair+Display:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 30 10% 15%;
+
+    --card: 40 30% 98%;
+    --card-foreground: 30 10% 15%;
+
+    --popover: 40 30% 98%;
+    --popover-foreground: 30 10% 15%;
+
+    --primary: 120 35% 28%;
+    --primary-foreground: 40 33% 96%;
+
+    --secondary: 35 30% 88%;
+    --secondary-foreground: 30 10% 15%;
+
+    --muted: 40 20% 92%;
+    --muted-foreground: 30 8% 45%;
+
+    --accent: 35 60% 50%;
+    --accent-foreground: 40 33% 96%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 35 20% 85%;
+    --input: 35 20% 85%;
+    --ring: 120 35% 28%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 120 20% 96%;
+    --sidebar-foreground: 30 10% 15%;
+    --sidebar-primary: 120 35% 28%;
+    --sidebar-primary-foreground: 40 33% 96%;
+    --sidebar-accent: 120 15% 90%;
+    --sidebar-accent-foreground: 30 10% 15%;
+    --sidebar-border: 35 20% 85%;
+    --sidebar-ring: 120 35% 28%;
+
+    /* Custom tokens */
+    --earth: 25 40% 35%;
+    --earth-foreground: 40 33% 96%;
+    --sage: 120 15% 75%;
+    --cream: 40 40% 94%;
+    --gold: 40 70% 50%;
+    --gold-foreground: 30 10% 15%;
+    --leaf: 130 40% 40%;
+
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Source Sans 3', sans-serif;
+    --font-serif: 'Lora', serif;
+    --font-script: 'Pacifico', cursive;
+  }
+
+  .dark {
+    --background: 30 10% 10%;
+    --foreground: 40 20% 90%;
+    --card: 30 10% 13%;
+    --card-foreground: 40 20% 90%;
+    --popover: 30 10% 13%;
+    --popover-foreground: 40 20% 90%;
+    --primary: 120 35% 45%;
+    --primary-foreground: 30 10% 10%;
+    --secondary: 30 15% 20%;
+    --secondary-foreground: 40 20% 90%;
+    --muted: 30 10% 18%;
+    --muted-foreground: 40 15% 60%;
+    --accent: 35 60% 50%;
+    --accent-foreground: 30 10% 10%;
+    --border: 30 10% 22%;
+    --input: 30 10% 22%;
+    --ring: 120 35% 45%;
+    --earth: 25 30% 55%;
+    --earth-foreground: 30 10% 10%;
+    --sage: 120 10% 35%;
+    --cream: 30 10% 15%;
+    --gold: 40 70% 55%;
+    --gold-foreground: 30 10% 10%;
+    --leaf: 130 35% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    overflow-x: hidden;
+  }
+
+  p {
+    font-size: 1rem !important;
+    line-height: 1.7 !important;
+    text-align: justify !important;
+    overflow-wrap: anywhere;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+  .font-script {
+    font-family: var(--font-script);
+  }
+}
+
+/* Leaf divider */
+.leaf-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 0;
+}
+
+.leaf-divider::before,
+.leaf-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, hsl(var(--border)), transparent);
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}
