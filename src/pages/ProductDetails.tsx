@@ -73,12 +73,17 @@ const ProductDetails = () => {
     product.description?.trim() ||
     `${product.name} is sourced directly from our farm under strict hygiene and quality standards. This product is delivered fresh and carefully packed for daily use.`;
 
+  const normalizeRupeeText = (value?: string | null) => {
+    if (!value) return "";
+    return value.replace(/\bRs\.?\s*/gi, "\u20B9 ");
+  };
+
   const displayPrice = selectedVariation ? selectedVariation.price : product.price;
   const displayStock = selectedVariation ? selectedVariation.stock : Number(product.stockQuantity || 0);
   const displayUnit = selectedVariation
     ? selectedVariation.quantity_value != null && selectedVariation.unit
       ? `${selectedVariation.quantity_value} ${selectedVariation.unit}`
-      : selectedVariation.value
+      : normalizeRupeeText(selectedVariation.value)
     : product.unit;
 
   const handleAddToCart = () => {
@@ -87,7 +92,7 @@ const ProductDetails = () => {
       variationLabel:
         selectedVariation?.quantity_value != null && selectedVariation?.unit
           ? `${selectedVariation.quantity_value} ${selectedVariation.unit}`
-          : selectedVariation?.value || displayUnit,
+          : normalizeRupeeText(selectedVariation?.value) || displayUnit,
       variationAttribute: selectedVariation?.attribute_name || "Unit",
       sku: selectedVariation?.sku ?? null,
       unitPrice: displayPrice,
@@ -115,12 +120,14 @@ const ProductDetails = () => {
               </p>
               <p className="text-sm text-muted-foreground mb-3">Stock: {displayStock}</p>
               <div className="flex items-end gap-3 mb-6">
-                <span className="text-2xl font-bold text-primary">Rs {displayPrice}</span>
+                <span className="text-2xl font-bold text-primary">{"\u20B9"} {displayPrice}</span>
               </div>
 
               {variationsByAttribute.map(([attributeName, options]) => (
                 <div key={attributeName} className="mb-4">
-                  <p className="text-sm font-semibold mb-2">{attributeName}</p>
+                  <p className="text-sm font-semibold mb-2">
+                    {(attributeName || "").trim().toLowerCase() === "weight" ? "Weight Options" : `${attributeName} Options`}
+                  </p>
                   <select
                     className="h-10 w-full rounded-md border px-3 text-sm"
                     value={
@@ -135,25 +142,25 @@ const ProductDetails = () => {
                       <option key={option.id} value={option.id}>
                         {(option.quantity_value != null && option.unit
                           ? `${option.quantity_value} ${option.unit}`
-                          : option.value) || option.value}{" "}
-                        - Rs {option.price}
+                          : normalizeRupeeText(option.value)) || normalizeRupeeText(option.value)}
                       </option>
                     ))}
                   </select>
                 </div>
               ))}
 
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => navigate(`/checkout/${product.id}?variationId=${selectedVariation?.id ?? ""}`)}
-                  disabled={displayStock <= 0}
-                >
-                  Buy Now
-                </Button>
-                <Button variant="outline" onClick={handleAddToCart} disabled={displayStock <= 0}>
-                  Add to Cart
-                </Button>
-              </div>
+              {displayStock > 0 ? (
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => navigate(`/checkout/${product.id}?variationId=${selectedVariation?.id ?? ""}`)}>
+                    Buy Now
+                  </Button>
+                  <Button variant="outline" onClick={handleAddToCart}>
+                    Add to Cart
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm font-semibold text-red-600">Out of Stock</p>
+              )}
             </div>
           </div>
 
@@ -169,7 +176,7 @@ const ProductDetails = () => {
                   <img src={item.image} alt={item.name} className="w-full aspect-square object-cover" />
                   <div className="p-3">
                     <p className="text-sm font-semibold line-clamp-2 mb-1">{item.name}</p>
-                    <p className="text-sm text-primary font-bold">Rs {item.price}</p>
+                    <p className="text-sm text-primary font-bold">{"\u20B9"} {item.price}</p>
                   </div>
                 </Link>
               ))}
