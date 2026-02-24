@@ -32,7 +32,7 @@ import shopProductImage from "@/assets/shop product.png";
 import testimonialBgImage from "@/assets/testimonial_bg.png";
 import aboutHomeImage from "@/assets/About-home.png";
 import { products as mockProducts, testimonials } from "@/data/mockData";
-import { getPublicProducts, type PublicProduct } from "@/lib/publicApi";
+import { getPublicProducts, type PublicProduct } from "@/lib/public-api";
 
 const categoryData = [
   { name: "Grains & Pulses", image: grainsAndPulsesImage },

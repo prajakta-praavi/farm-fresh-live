@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import ProductCard from "@/components/ProductCard";
@@ -6,7 +6,7 @@ import { categories as mockCategories, products as mockProducts } from "@/data/m
 import { cn } from "@/lib/utils";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import shopBreadcrumbImage from "@/assets/shop breadcrub main.png";
-import { getPublicProducts, type PublicProduct } from "@/lib/publicApi";
+import { getPublicProducts, type PublicProduct } from "@/lib/public-api";
 
 const Shop = () => {
   const [searchParams] = useSearchParams();

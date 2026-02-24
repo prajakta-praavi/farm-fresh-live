@@ -1,5 +1,5 @@
-import { products } from "@/data/mockData";
-import { getCachedPublicCatalog } from "@/lib/publicApi";
+﻿import { products } from "@/data/mockData";
+import { getCachedPublicCatalog } from "@/lib/public-api";
 
 const CART_STORAGE_KEY = "rushivan_cart_items";
 const CART_UPDATED_EVENT = "cart-updated";

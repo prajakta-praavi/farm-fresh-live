@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import checkoutBreadcrumbImage from "@/assets/checkout_breadcrub.png";
 import { products } from "@/data/mockData";
 import { getCartDetailedItems, clearCart } from "@/lib/cart";
 import { openRazorpayCheckout } from "@/lib/razorpay";
-import { getCachedPublicCatalog, getPublicProducts, type PublicProduct } from "@/lib/publicApi";
+import { getCachedPublicCatalog, getPublicProducts, type PublicProduct } from "@/lib/public-api";
 import { customerApi } from "@/lib/customerApi";
 
 interface CheckoutFormState {
@@ -395,13 +395,13 @@ const Checkout = () => {
                   {appliedGstLabel}
                 </p>
                 <p>
-                  <span className="font-semibold">Subtotal:</span> ₹ {checkoutData.subtotal.toFixed(2)}
+                  <span className="font-semibold">Subtotal:</span> â‚¹ {checkoutData.subtotal.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-semibold">GST:</span> ₹ {checkoutData.gstAmount.toFixed(2)}
+                  <span className="font-semibold">GST:</span> â‚¹ {checkoutData.gstAmount.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-semibold">Payable Amount:</span> ₹ {checkoutData.totalAmount.toFixed(2)}
+                  <span className="font-semibold">Payable Amount:</span> â‚¹ {checkoutData.totalAmount.toFixed(2)}
                 </p>
               </div>
 

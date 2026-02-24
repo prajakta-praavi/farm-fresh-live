@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import shopBreadcrumbImage from "@/assets/shop breadcrub main.png";
 import { addToCart } from "@/lib/cart";
-import { getPublicProductById, getPublicProducts, type PublicProduct, type PublicProductVariation } from "@/lib/publicApi";
+import { getPublicProductById, getPublicProducts, type PublicProduct, type PublicProductVariation } from "@/lib/public-api";
 
 const ProductDetails = () => {
   const { id } = useParams();
