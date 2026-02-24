@@ -26,6 +26,63 @@ $path = getPath();
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $body = parseJsonBody();
 
+function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $items): void
+{
+    $ownerEmail = trim((string) env('ORDER_NOTIFICATION_EMAIL', 'rushivanagro@gmail.com'));
+    if ($ownerEmail === '') {
+        return;
+    }
+
+    $customerName = trim((string) ($orderPayload['customer_name'] ?? ''));
+    $customerEmail = trim((string) ($orderPayload['customer_email'] ?? ''));
+    $customerPhone = trim((string) ($orderPayload['customer_phone'] ?? ''));
+    $customerAddress = trim((string) ($orderPayload['customer_address'] ?? ''));
+    $customerPincode = trim((string) ($orderPayload['customer_pincode'] ?? ''));
+    $totalAmount = number_format((float) ($orderPayload['total_amount'] ?? 0), 2, '.', '');
+
+    $itemLines = [];
+    foreach ($items as $item) {
+        $name = trim((string) ($item['product_name'] ?? 'Product'));
+        $qty = (int) ($item['quantity'] ?? 1);
+        $price = (float) ($item['unit_price'] ?? 0);
+        $itemLines[] = sprintf('- %s | Qty: %d | Unit Price: %.2f', $name, $qty, $price);
+    }
+    $itemsText = count($itemLines) > 0 ? implode("\n", $itemLines) : '- No items';
+
+    $subject = sprintf('New Order Received #%d - Rushivan Agro', $orderId);
+    $message = implode("\n", [
+        'A new order has been placed on your website.',
+        '',
+        'Order ID: ' . $orderId,
+        'Total Amount: Rs ' . $totalAmount,
+        '',
+        'Customer Details:',
+        'Name: ' . ($customerName !== '' ? $customerName : 'N/A'),
+        'Email: ' . ($customerEmail !== '' ? $customerEmail : 'N/A'),
+        'Phone: ' . ($customerPhone !== '' ? $customerPhone : 'N/A'),
+        'Address: ' . ($customerAddress !== '' ? $customerAddress : 'N/A'),
+        'Pincode: ' . ($customerPincode !== '' ? $customerPincode : 'N/A'),
+        '',
+        'Items:',
+        $itemsText,
+        '',
+        'Generated at: ' . date('Y-m-d H:i:s'),
+    ]);
+
+    $fromEmail = trim((string) env('MAIL_FROM', 'noreply@rushivanagro.com'));
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: Rushivan Agro <' . $fromEmail . '>',
+    ];
+
+    try {
+        @mail($ownerEmail, $subject, $message, implode("\r\n", $headers));
+    } catch (Throwable $e) {
+        // Do not fail checkout if email service is unavailable.
+    }
+}
+
 try {
     ensureAuthSchema();
     ensureBootstrapAdmin();
@@ -849,6 +906,7 @@ try {
             }
         }
         $pdo->commit();
+        sendOwnerOrderNotification($orderId, $body, $items);
         jsonResponse(['id' => $orderId, 'message' => 'Order stored'], 201);
     }
 
