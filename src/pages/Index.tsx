@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+﻿import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -6,8 +6,8 @@ import {
   Star,
   Leaf,
   Truck,
-  Heart,
-  Shield,
+  Home,
+  MapPin,
   ArrowRight,
   ChevronLeft,
   ChevronRight,
@@ -24,9 +24,10 @@ import spicesAndCondimentsImage from "@/assets/spices and condiments.png";
 import dairyProductsImage from "@/assets/dairy products.png";
 import freshFruitsImage from "@/assets/fresh fruits.png";
 import gauSevaImage from "@/assets/gau seva secred products.png";
-import roomTwoImage from "@/assets/room-2.png";
-import roomThreeImage from "@/assets/Room-3.png";
-import roomFourImage from "@/assets/room-4.png";
+import farmStayOneImage from "@/assets/farm stay-1.png";
+import farmStayTwoImage from "@/assets/farm stay-2.png";
+import farmStayThreeImage from "@/assets/farm stay-3.png";
+import farmStayWideImage from "@/assets/farm-stay.jpg";
 import shopProductImage from "@/assets/shop product.png";
 import testimonialBgImage from "@/assets/testimonial_bg.png";
 import aboutHomeImage from "@/assets/About-home.png";
@@ -43,10 +44,26 @@ const categoryData = [
 ];
 
 const whyChoose = [
-  { icon: Leaf, title: "100% Organic", desc: "No chemicals, no pesticides - just pure nature" },
-  { icon: Truck, title: "Farm Fresh", desc: "Direct from our farm to your doorstep" },
-  { icon: Heart, title: "Ethical Farming", desc: "Humane treatment of animals & sustainable practices" },
-  { icon: Shield, title: "Quality Assured", desc: "Every product tested for purity and freshness" },
+  {
+    icon: Leaf,
+    title: "100% Organic Farm Products",
+    desc: "Naturally grown and chemical-free produce from sustainable farming. Fresh, pure, and responsibly sourced directly from our farm.",
+  },
+  {
+    icon: Truck,
+    title: "Farm Fresh & Direct From Source",
+    desc: "True farm-to-table freshness with quality checks and transparent sourcing. Healthy organic products delivered straight from our farm.",
+  },
+  {
+    icon: Home,
+    title: "Premium Farmstay Near Wai",
+    desc: "Enjoy a peaceful farmstay with meals in nature near Wai. Perfect for digital detox, weekend getaways, and family retreats.",
+  },
+  {
+    icon: MapPin,
+    title: "Easy Access from Pune & Mumbai",
+    desc: "Conveniently located near Wai-Mahabaleshwar, just 10 minutes from the Pune-Satara Highway for quick travel access.",
+  },
 ];
 
 const bannerSlides = [
@@ -81,7 +98,23 @@ const bannerSlides = [
   },
 ];
 
-const farmStaySlides = [roomTwoImage, roomThreeImage, roomFourImage];
+const stayFolderAssets = import.meta.glob("/src/assets/stay/*.{png,jpg,jpeg,webp}", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+
+const stayFolderSlides = Object.entries(stayFolderAssets)
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([, src]) => src);
+
+const fallbackStaySlides = [
+  farmStayOneImage,
+  farmStayTwoImage,
+  farmStayThreeImage,
+  farmStayWideImage,
+];
+
+const farmStaySlides = stayFolderSlides.length > 0 ? stayFolderSlides : fallbackStaySlides;
 
 const Index = () => {
   const [activeBanner, setActiveBanner] = useState(0);
@@ -284,21 +317,26 @@ const Index = () => {
         <div className="container">
           <div className="mb-8 text-center">
             <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-              About Rushivan Aagro
+              Welcome to Rushivan Aagro
             </h2>
           </div>
           <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
             <div>
               <div className="space-y-4 text-base leading-relaxed text-foreground md:text-[1.65rem] md:leading-[1.55]">
-                <p>Welcome to Rushivan Aagro - your peaceful farmstay escape.</p>
-                <p>
+                <div>
+                  <p className="!text-[22px] !font-semibold !leading-[1.2] !text-left text-primary">
+                    Premium Farmstay & Farm-Fresh Organic Produce
+                  </p>
+                </div>
+                <p className="!text-[1rem] md:!text-[1.06rem] lg:!text-[1.1rem] !leading-[1.7]">
                   Experience nature, village life, and organic living in the heart of Maharashtra.
                   Stay with us, meet our farm animals, and enjoy our range of fresh organic products.
                 </p>
-                <p>
-                  रशिवन अॅग्रो मध्ये आपले स्वागत आहे - निसर्गाच्या सानिध्यातील आमचे शेत-निवास. हृदय
-                  महाराष्ट्रातील निसर्ग, ग्रामीण जीवन आणि सेंद्रिय उत्पादनांचा आनंद घ्या. आमच्याशी राहा,
-                  आमच्या शेतप्राण्यांना भेटा, आणि ताज्या सेंद्रिय उत्पादनांचा आनंद घ्या.
+                <p className="!text-[0.95rem] md:!text-[1rem] lg:!text-[1.04rem] !leading-[1.7]">
+                  रुशिवन ॲग्रोमध्ये   आपले स्वागत आहे. निसर्गाच्या सान्निध्यातील आमच्या शेत-निवासाचा
+                  अनुभव घ्या. महाराष्ट्रातील ग्रामीण जीवन, निसर्ग आणि सेंद्रिय उत्पादनांचा आनंद घ्या.
+                  आमच्यासोबत रहा, आमच्या शेतातील प्राण्यांना भेटा आणि ताज्या सेंद्रिय उत्पादनांचा
+                  आस्वाद घ्या.
                 </p>
               </div>
             </div>
@@ -395,8 +433,20 @@ const Index = () => {
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <item.icon className="w-7 h-7 text-primary" />
                 </div>
-                <h3 className="font-display font-semibold text-lg mb-2">{item.title}</h3>
-                <p className="text-muted-foreground text-sm">{item.desc}</p>
+                <h3 className="text-center font-display font-semibold text-base mb-2 whitespace-nowrap">
+                  {item.title}
+                </h3>
+                <p
+                  className="!text-center text-muted-foreground text-sm"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.desc}
+                </p>
               </motion.div>
             ))}
           </div>

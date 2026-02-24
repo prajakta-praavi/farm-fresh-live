@@ -78,7 +78,7 @@ const Contact = () => {
                       label: "Visit Our Farm",
                       value: "W27G+J3, Chawaneshwar, Maharashtra - 415525, India",
                     },
-                    { icon: Phone, label: "Call Us", value: "+91 12137676" },
+                    { icon: Phone, label: "Call Us", value: "+91 9112137676 / +91 7774041569" },
                     { icon: Mail, label: "Email Us", value: "rushivanagro@gmail.com" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-start gap-4">
@@ -95,7 +95,7 @@ const Contact = () => {
               </div>
 
               <a
-                href="https://wa.me/9112137676"
+                href="https://wa.me/917774041569?text=%2AHello%20Rushivan%20Aagro%2C%2A%0A%0AMy%20Name%3A%20%0AEnquiry%20For%3A%20%0A(Farmstay%20Booking%20%2F%20Organic%20Agro%20Products)"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-[hsl(142,70%,40%)] text-[hsl(0,0%,100%)] px-6 py-3 rounded-full font-medium hover:opacity-90 transition-opacity"

@@ -1,6 +1,6 @@
 const WhatsAppButton = () => (
   <a
-    href="https://wa.me/9112137676"
+    href="https://wa.me/917774041569?text=%2AHello%20Rushivan%20Aagro%2C%2A%0A%0AMy%20Name%3A%20%0AEnquiry%20For%3A%20%0A(Farmstay%20Booking%20%2F%20Organic%20Agro%20Products)"
     target="_blank"
     rel="noopener noreferrer"
     className="fixed right-4 z-[100] h-12 w-12 rounded-full sm:right-6 sm:h-16 sm:w-16 pointer-events-auto"

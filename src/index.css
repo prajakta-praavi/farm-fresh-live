@@ -105,6 +105,18 @@
     overflow-wrap: anywhere;
   }
 
+  @media (min-width: 768px) {
+    p {
+      font-size: 1.06rem !important;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    p {
+      font-size: 1.1rem !important;
+    }
+  }
+
   h1, h2, h3, h4 {
     font-family: var(--font-display);
   }
