@@ -73,7 +73,7 @@ const Cart = () => {
                           ? `${item.variationAttribute ? `${item.variationAttribute}: ` : ""}${item.variationLabel}`
                           : item.product.unit}
                       </p>
-                      <p className="text-sm text-primary font-bold mt-1">Rs {item.unitPrice}</p>
+                      <p className="text-sm text-primary font-bold mt-1">₹ {item.unitPrice}</p>
                     </div>
                     <div className="flex items-center gap-2 sm:ml-auto">
                       <Button
@@ -97,7 +97,7 @@ const Cart = () => {
                       </Button>
                     </div>
                     <div className="text-left sm:text-right">
-                      <p className="font-semibold">Rs {item.lineTotal}</p>
+                      <p className="font-semibold">₹ {item.lineTotal}</p>
                       <button
                         onClick={() => removeFromCart(item.productId, item.variationId ?? null)}
                         className="text-xs text-muted-foreground hover:text-destructive"
@@ -117,7 +117,7 @@ const Cart = () => {
                 </div>
                 <div className="flex items-center justify-between text-sm mb-4">
                   <span>Total</span>
-                  <span className="font-semibold">Rs {total}</span>
+                  <span className="font-semibold">₹ {total}</span>
                 </div>
                 <Button className="w-full" onClick={() => navigate("/checkout/cart")}>
                   Proceed to Checkout

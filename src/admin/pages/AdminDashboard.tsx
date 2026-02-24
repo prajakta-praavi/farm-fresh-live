@@ -43,7 +43,7 @@ const AdminDashboard = () => {
         </div>
         <div className={cardClasses}>
           <p className="text-sm text-slate-500">Total Revenue</p>
-          <p className="text-2xl font-bold">Rs {totalRevenue.toFixed(2)}</p>
+          <p className="text-2xl font-bold">₹ {totalRevenue.toFixed(2)}</p>
         </div>
         <div className={cardClasses}>
           <p className="text-sm text-slate-500">Farm Stay Inquiries</p>
@@ -70,7 +70,7 @@ const AdminDashboard = () => {
               <tr key={order.id} className="border-t">
                 <td className="p-3">#{order.id}</td>
                 <td className="p-3">{order.customer_name}</td>
-                <td className="p-3">Rs {Number(order.total_amount).toFixed(2)}</td>
+                <td className="p-3">₹ {Number(order.total_amount).toFixed(2)}</td>
                 <td className="p-3">{order.payment_status}</td>
                 <td className="p-3">{order.order_status}</td>
               </tr>

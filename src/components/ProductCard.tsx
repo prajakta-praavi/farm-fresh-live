@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Heart, ShoppingCart, Eye } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { addToCart } from "@/lib/cart";
 
@@ -12,13 +12,21 @@ interface ProductCardProps {
   image: string;
   category: string;
   unit: string;
+  stockQuantity?: number;
+  variations?: Array<{ stock: number }>;
 }
 
 const WISHLIST_KEY = "rushivan_wishlist_ids";
 
-const ProductCard = ({ id, name, price, originalPrice, image, category, unit }: ProductCardProps) => {
+const ProductCard = ({ id, name, price, originalPrice, image, category, unit, stockQuantity, variations }: ProductCardProps) => {
   const [inWishlist, setInWishlist] = useState(false);
   const navigate = useNavigate();
+  const hasVariationStock = Array.isArray(variations) && variations.length > 0;
+  const isOutOfStock = hasVariationStock
+    ? variations.every((item) => Number(item.stock) <= 0)
+    : typeof stockQuantity === "number"
+      ? Number(stockQuantity) <= 0
+      : false;
 
   useEffect(() => {
     const raw = localStorage.getItem(WISHLIST_KEY);
@@ -53,18 +61,27 @@ const ProductCard = ({ id, name, price, originalPrice, image, category, unit }: 
   return (
     <div className="group bg-card rounded-xl overflow-hidden border border-border hover:shadow-lg transition-all duration-300">
       <div className="relative aspect-square overflow-hidden bg-muted">
-        <button type="button" className="block w-full h-full text-left" onClick={openDetails} aria-label={`Open ${name} details`}>
+        <button
+          type="button"
+          className="block w-full h-full text-left"
+          onClick={openDetails}
+          aria-label={`Open ${name} details`}
+        >
           <img
             src={image}
             alt={name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className={`w-full h-full object-cover transition-transform duration-500 ${
+              isOutOfStock ? "blur-[2px] grayscale" : "group-hover:scale-105"
+            }`}
           />
         </button>
-        <div className="absolute top-3 left-3 hidden sm:block">
-          <span className="bg-primary text-primary-foreground text-xs px-2.5 py-1 rounded-full font-medium">
-            {category}
-          </span>
-        </div>
+        {isOutOfStock ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30">
+            <span className="rounded-full bg-red-600/90 px-3 py-1 text-xs font-semibold text-white">
+              Out of Stock
+            </span>
+          </div>
+        ) : null}
         <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
           <button
             type="button"
@@ -85,12 +102,16 @@ const ProductCard = ({ id, name, price, originalPrice, image, category, unit }: 
         </div>
       </div>
       <div className="p-3 sm:p-4">
-        <div className="mb-2 sm:hidden">
+        <div className="mb-2">
           <span className="bg-primary/10 text-primary text-[11px] px-2.5 py-1 rounded-full font-medium">
             {category}
           </span>
         </div>
-        <button type="button" onClick={openDetails} className="font-serif font-semibold text-sm mb-0.5 line-clamp-2 min-h-[2.1rem] text-left hover:text-primary">
+        <button
+          type="button"
+          onClick={openDetails}
+          className="font-serif font-semibold text-sm mb-0.5 line-clamp-2 min-h-[2.1rem] text-left hover:text-primary"
+        >
           {name}
         </button>
         <p className="text-muted-foreground text-xs mb-1.5">{unit}</p>
@@ -99,31 +120,33 @@ const ProductCard = ({ id, name, price, originalPrice, image, category, unit }: 
           <div className="mb-2.5 md:mb-0">
             <p className="text-primary font-bold text-lg leading-none">
               <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
-                <span>Rs</span>
+                <span>₹</span>
                 <span>{price}</span>
               </span>
             </p>
             {originalPrice && (
               <p className="text-muted-foreground text-xs line-through font-medium mt-0.5">
-                Rs {originalPrice}
+                ₹ {originalPrice}
               </p>
             )}
           </div>
 
           <div className="flex justify-center md:justify-end">
-            <Button
-              size="sm"
-              className="h-8 rounded-full text-xs px-4"
-              onClick={() => {
-                addToCart(id, 1, { unitPrice: price, variationLabel: unit, variationAttribute: "Unit" });
-                alert(`${name} added to cart.`);
-              }}
-            >
-              <span className="inline-flex items-center">
-                <ShoppingCart className="w-3.5 h-3.5 mr-1" />
-                Add to Cart
-              </span>
-            </Button>
+            {!isOutOfStock ? (
+              <Button
+                size="sm"
+                className="h-8 rounded-full text-xs px-4"
+                onClick={() => {
+                  addToCart(id, 1, { unitPrice: price, variationLabel: unit, variationAttribute: "Unit" });
+                  alert(`${name} added to cart.`);
+                }}
+              >
+                <span className="inline-flex items-center">
+                  <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                  Add to Cart
+                </span>
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>

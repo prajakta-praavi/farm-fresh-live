@@ -29,6 +29,7 @@ export interface PublicProduct {
 }
 
 export const PUBLIC_CATALOG_KEY = "rushivan_public_catalog";
+const DEMO_OUT_OF_STOCK_PRODUCT_NAME = "udid dal plain";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost/farm-fresh-dwell-main/backend";
@@ -89,6 +90,17 @@ const normalizeProduct = (item: ApiProduct): PublicProduct => ({
   variations: Array.isArray(item.variations) ? item.variations.map((variation) => normalizeVariation(variation)) : [],
 });
 
+const markDemoOutOfStock = (product: PublicProduct): PublicProduct => {
+  if ((product.name || "").trim().toLowerCase() !== DEMO_OUT_OF_STOCK_PRODUCT_NAME) {
+    return product;
+  }
+  return {
+    ...product,
+    stockQuantity: 0,
+    variations: (product.variations || []).map((variation) => ({ ...variation, stock: 0 })),
+  };
+};
+
 const toMockProduct = (item: (typeof mockProducts)[number]): PublicProduct => ({
   id: item.id,
   name: item.name,
@@ -99,14 +111,14 @@ const toMockProduct = (item: (typeof mockProducts)[number]): PublicProduct => ({
   unit: item.unit,
   hsnCode: item.hsnCode || "",
   gstRate: 0,
-  stockQuantity: 999,
+  stockQuantity: (item.name || "").trim().toLowerCase() === DEMO_OUT_OF_STOCK_PRODUCT_NAME ? 0 : 999,
   variations: (item.variants || []).map((variation, index) => ({
     id: -(item.id * 1000 + index + 1),
     attribute_id: -1,
     term_id: -1,
     value: variation.label,
     price: variation.price,
-    stock: 999,
+    stock: (item.name || "").trim().toLowerCase() === DEMO_OUT_OF_STOCK_PRODUCT_NAME ? 0 : 999,
     sku: null,
     attribute_name: "Weight",
     term_name: "Unit",
@@ -120,7 +132,7 @@ export const getCachedPublicCatalog = (): PublicProduct[] => {
   if (!raw) return mockCatalog;
   try {
     const parsed = JSON.parse(raw) as PublicProduct[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : mockCatalog;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed.map((item) => markDemoOutOfStock(item)) : mockCatalog;
   } catch {
     return mockCatalog;
   }
@@ -133,7 +145,7 @@ export const getPublicProducts = async (): Promise<PublicProduct[]> => {
     if (!response.ok || !Array.isArray(json)) {
       return getCachedPublicCatalog();
     }
-    const mapped = json.map((item) => normalizeProduct(item as ApiProduct));
+    const mapped = json.map((item) => markDemoOutOfStock(normalizeProduct(item as ApiProduct)));
     if (mapped.length > 0) {
       localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify(mapped));
       return mapped;
@@ -151,7 +163,7 @@ export const getPublicProductById = async (id: number): Promise<PublicProduct | 
     if (!response.ok || !json) {
       return getCachedPublicCatalog().find((item) => item.id === id) ?? null;
     }
-    const normalized = normalizeProduct(json as ApiProduct);
+    const normalized = markDemoOutOfStock(normalizeProduct(json as ApiProduct));
     const existing = getCachedPublicCatalog().filter((item) => item.id !== normalized.id);
     localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify([normalized, ...existing]));
     return normalized;

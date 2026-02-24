@@ -30,7 +30,7 @@ const CustomerDashboard = () => {
               <p className="font-medium">Order #{order.id}</p>
               <p>Status: {order.order_status}</p>
               <p>Payment: {order.payment_status}</p>
-              <p>Total: Rs {order.total_amount}</p>
+              <p>Total: ₹ {order.total_amount}</p>
             </div>
           ))}
           {orders.length === 0 ? <p className="text-sm text-slate-500">No orders yet.</p> : null}
@@ -42,4 +42,3 @@ const CustomerDashboard = () => {
 };
 
 export default CustomerDashboard;
-

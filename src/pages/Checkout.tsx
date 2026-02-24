@@ -395,13 +395,13 @@ const Checkout = () => {
                   {appliedGstLabel}
                 </p>
                 <p>
-                  <span className="font-semibold">Subtotal:</span> Rs {checkoutData.subtotal.toFixed(2)}
+                  <span className="font-semibold">Subtotal:</span> ₹ {checkoutData.subtotal.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-semibold">GST:</span> Rs {checkoutData.gstAmount.toFixed(2)}
+                  <span className="font-semibold">GST:</span> ₹ {checkoutData.gstAmount.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-semibold">Payable Amount:</span> Rs {checkoutData.totalAmount.toFixed(2)}
+                  <span className="font-semibold">Payable Amount:</span> ₹ {checkoutData.totalAmount.toFixed(2)}
                 </p>
               </div>
 

@@ -112,7 +112,7 @@ const Stay = () => {
                         </li>
                       </ul>
                       <div className="mt-4 border-t border-border pt-4">
-                        <span className="text-2xl font-bold text-primary">Rs 5,000</span>
+                        <span className="text-2xl font-bold text-primary">₹ 5,000</span>
                         <span className="text-sm text-muted-foreground"> / night + GST</span>
                       </div>
                     </div>
@@ -191,15 +191,15 @@ const Stay = () => {
                   <div className="mb-6 space-y-2 rounded-xl bg-muted p-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Room rate</span>
-                      <span>Rs 5,000 / night</span>
+                      <span>₹ 5,000 / night</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">GST (18%)</span>
-                      <span>Rs 900 / night</span>
+                      <span>₹ 900 / night</span>
                     </div>
                     <div className="flex justify-between border-t border-border pt-2 font-bold">
                       <span>Total / night</span>
-                      <span className="text-primary">Rs 5,900</span>
+                      <span className="text-primary">₹ 5,900</span>
                     </div>
                   </div>
                 )}

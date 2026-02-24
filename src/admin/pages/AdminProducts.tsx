@@ -469,7 +469,7 @@ const AdminProducts = () => {
               <tr key={product.id} className="border-t">
                 <td className="p-3">{product.name}</td>
                 <td className="p-3">{product.category_name}</td>
-                <td className="p-3">Rs {Number(product.price).toFixed(2)}</td>
+                <td className="p-3">₹ {Number(product.price).toFixed(2)}</td>
                 <td className="p-3">{Number(product.gst_rate ?? 0).toFixed(2)}%</td>
                 <td className="p-3">
                   <Input

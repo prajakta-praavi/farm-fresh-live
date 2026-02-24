@@ -55,7 +55,7 @@ const AdminOrders = () => {
                 <tr key={order.id} className="border-t">
                   <td className="p-3">#{order.id}</td>
                   <td className="p-3">{order.customer_name}</td>
-                  <td className="p-3">Rs {Number(order.total_amount).toFixed(2)}</td>
+                  <td className="p-3">₹ {Number(order.total_amount).toFixed(2)}</td>
                   <td className="p-3">{order.payment_status}</td>
                   <td className="p-3">
                     <select
@@ -114,7 +114,7 @@ const AdminOrders = () => {
                       {item.attribute_name || item.term_name || item.variation_value
                         ? ` (${[item.attribute_name, item.term_name, item.variation_value].filter(Boolean).join(" / ")})`
                         : ""}
-                      {item.sku ? ` [SKU: ${item.sku}]` : ""} x {item.quantity} - Rs {Number(item.total_price).toFixed(2)}
+                      {item.sku ? ` [SKU: ${item.sku}]` : ""} x {item.quantity} - ₹ {Number(item.total_price).toFixed(2)}
                     </li>
                   ))}
                 </ul>
