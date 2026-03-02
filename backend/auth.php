@@ -254,6 +254,9 @@ function ensureAuthSchema(): void
     if (!hasColumn($pdo, 'orders', 'customer_id')) {
         $pdo->exec('ALTER TABLE orders ADD COLUMN customer_id INT NULL AFTER id');
     }
+    if (!hasColumn($pdo, 'orders', 'invoice_id')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN invoice_id VARCHAR(40) DEFAULT NULL AFTER razorpay_signature');
+    }
 
     $fkStmt = $pdo->prepare('
         SELECT COUNT(*)

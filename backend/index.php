@@ -83,6 +83,76 @@ function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $it
     }
 }
 
+function httpBuildQuerySafe(array $params): string
+{
+    return http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+}
+
+function razorpayApiRequest(string $method, string $endpoint, array $payload = []): array
+{
+    $keyId = trim((string) env('RAZORPAY_KEY_ID', ''));
+    $keySecret = trim((string) env('RAZORPAY_KEY_SECRET', ''));
+    if ($keyId === '' || $keySecret === '') {
+        jsonResponse(['message' => 'Razorpay credentials are not configured on server'], 500);
+    }
+
+    $url = 'https://api.razorpay.com/v1/' . ltrim($endpoint, '/');
+    $ch = curl_init();
+    if ($ch === false) {
+        jsonResponse(['message' => 'Unable to initialize payment gateway request'], 500);
+    }
+
+    $headers = ['Accept: application/json'];
+    $normalizedMethod = strtoupper($method);
+
+    if ($normalizedMethod === 'GET' && count($payload) > 0) {
+        $url .= '?' . httpBuildQuerySafe($payload);
+    } elseif ($normalizedMethod !== 'GET') {
+        $headers[] = 'Content-Type: application/json';
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_USERPWD => $keyId . ':' . $keySecret,
+        CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_CUSTOMREQUEST => $normalizedMethod,
+        CURLOPT_TIMEOUT => 20,
+    ]);
+
+    if ($normalizedMethod !== 'GET') {
+        curl_setopt($ch, CURLOPT_POSTFIELDS, (string) json_encode($payload));
+    }
+
+    $raw = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($raw === false) {
+        jsonResponse(['message' => $curlError !== '' ? $curlError : 'Payment gateway request failed'], 502);
+    }
+
+    $decoded = json_decode((string) $raw, true);
+    if (!is_array($decoded)) {
+        jsonResponse(['message' => 'Unexpected response from payment gateway'], 502);
+    }
+
+    if ($status >= 400) {
+        $error = $decoded['error'] ?? [];
+        $description = is_array($error) ? (string) ($error['description'] ?? 'Payment gateway error') : 'Payment gateway error';
+        jsonResponse(['message' => $description], $status);
+    }
+
+    return $decoded;
+}
+
+function generateInvoiceId(int $orderId): string
+{
+    return 'INV-' . date('Ymd') . '-' . str_pad((string) $orderId, 6, '0', STR_PAD_LEFT);
+}
+
 try {
     ensureAuthSchema();
     ensureBootstrapAdmin();
@@ -740,6 +810,40 @@ try {
         jsonResponse($rows);
     }
 
+    if ($path === '/api/payments/razorpay/order' && $method === 'POST') {
+        $amount = (float) ($body['amount'] ?? 0);
+        $currency = strtoupper(trim((string) ($body['currency'] ?? 'INR')));
+        $customerName = trim((string) ($body['customer_name'] ?? ''));
+        $customerEmail = trim((string) ($body['customer_email'] ?? ''));
+        $customerPhone = trim((string) ($body['customer_phone'] ?? ''));
+
+        if ($amount <= 0) {
+            jsonResponse(['message' => 'Amount must be greater than zero'], 422);
+        }
+
+        $amountInPaise = (int) round($amount * 100);
+        $receipt = 'rcpt_' . date('YmdHis') . '_' . bin2hex(random_bytes(3));
+        $payload = [
+            'amount' => $amountInPaise,
+            'currency' => $currency !== '' ? $currency : 'INR',
+            'receipt' => $receipt,
+            'notes' => [
+                'customer_name' => $customerName,
+                'customer_email' => $customerEmail,
+                'customer_phone' => $customerPhone,
+            ],
+        ];
+
+        $razorpayOrder = razorpayApiRequest('POST', '/orders', $payload);
+        jsonResponse([
+            'id' => (string) ($razorpayOrder['id'] ?? ''),
+            'amount' => (int) ($razorpayOrder['amount'] ?? $amountInPaise),
+            'currency' => (string) ($razorpayOrder['currency'] ?? 'INR'),
+            'receipt' => (string) ($razorpayOrder['receipt'] ?? $receipt),
+            'status' => (string) ($razorpayOrder['status'] ?? ''),
+        ]);
+    }
+
     if (preg_match('#^/api/orders/(\d+)$#', $path, $m) && $method === 'GET') {
         requireAdmin();
         $id = (int) $m[1];
@@ -834,8 +938,8 @@ try {
             INSERT INTO orders (
                 customer_id,
                 customer_name, customer_email, customer_phone, customer_address, customer_pincode,
-                total_amount, payment_status, order_status, razorpay_order_id, razorpay_payment_id, razorpay_signature
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                total_amount, payment_status, order_status, razorpay_order_id, razorpay_payment_id, razorpay_signature, invoice_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
         $stmt->execute([
             $customerId && $customerId > 0 ? $customerId : null,
@@ -850,8 +954,15 @@ try {
             (string) ($body['razorpay_order_id'] ?? ''),
             (string) ($body['razorpay_payment_id'] ?? ''),
             (string) ($body['razorpay_signature'] ?? ''),
+            null,
         ]);
         $orderId = (int) $pdo->lastInsertId();
+        $invoiceId = trim((string) ($body['invoice_id'] ?? ''));
+        if ($invoiceId === '') {
+            $invoiceId = generateInvoiceId($orderId);
+        }
+        $updateInvoiceStmt = $pdo->prepare('UPDATE orders SET invoice_id = ? WHERE id = ?');
+        $updateInvoiceStmt->execute([$invoiceId, $orderId]);
 
         $itemStmt = $pdo->prepare('
             INSERT INTO order_items (
@@ -907,7 +1018,7 @@ try {
         }
         $pdo->commit();
         sendOwnerOrderNotification($orderId, $body, $items);
-        jsonResponse(['id' => $orderId, 'message' => 'Order stored'], 201);
+        jsonResponse(['id' => $orderId, 'invoice_id' => $invoiceId, 'message' => 'Order stored'], 201);
     }
 
     if (preg_match('#^/api/orders/(\d+)/payment-verify$#', $path, $m) && $method === 'POST') {

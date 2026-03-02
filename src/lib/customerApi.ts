@@ -30,6 +30,7 @@ export interface CustomerOrder {
   order_status: string;
   payment_status: string;
   total_amount: number;
+  invoice_id?: string | null;
   created_at: string;
 }
 

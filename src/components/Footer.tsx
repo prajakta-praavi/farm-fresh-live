@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import rushivanLogo from "@/assets/footer_logo.svg";
+import rushivanLogo from "@/assets/rushivan_agro.png";
 import footerBackground from "@/assets/final footer.png";
 import { Facebook, Instagram } from "lucide-react";
 
@@ -17,7 +17,7 @@ const Footer = () => {
               <img
                 src={rushivanLogo}
                 alt="Rushivan Aagro"
-                className="mb-5 block h-14 w-auto max-w-[180px] object-contain sm:h-16 sm:max-w-[220px] md:h-20 md:max-w-[250px] md:object-left"
+                className="mb-5 block h-12 w-auto object-contain md:h-14"
               />
               <div className="pl-0 md:pl-6">
                 <div className="mb-5 flex items-center gap-3">

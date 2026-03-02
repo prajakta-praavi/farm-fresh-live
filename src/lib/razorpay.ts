@@ -33,10 +33,14 @@ const loadRazorpayScript = async (): Promise<void> => {
 export const openRazorpayCheckout = async ({
   amountInRupees,
   productName,
+  razorpayOrderId,
+  invoiceId,
   customer,
 }: {
   amountInRupees: number;
   productName: string;
+  razorpayOrderId: string;
+  invoiceId?: string;
   customer: {
     name: string;
     email: string;
@@ -65,6 +69,7 @@ export const openRazorpayCheckout = async ({
       key,
       amount: Math.round(amountInRupees * 100),
       currency: "INR",
+      order_id: razorpayOrderId,
       name: "Rushivan Aagro",
       description: `Payment for ${productName}`,
       prefill: {
@@ -73,6 +78,7 @@ export const openRazorpayCheckout = async ({
         contact: customer.phone,
       },
       notes: {
+        invoice_id: invoiceId || "",
         address: customer.address,
         pincode: customer.pincode,
         product: productName,

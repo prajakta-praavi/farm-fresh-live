@@ -76,6 +76,7 @@ export interface Order {
   total_amount: number;
   razorpay_order_id: string | null;
   razorpay_payment_id: string | null;
+  invoice_id?: string | null;
   created_at: string;
   items?: OrderItem[];
 }

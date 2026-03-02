@@ -24,10 +24,6 @@ import spicesAndCondimentsImage from "@/assets/spices and condiments.png";
 import dairyProductsImage from "@/assets/dairy products.png";
 import freshFruitsImage from "@/assets/fresh fruits.png";
 import gauSevaImage from "@/assets/gau seva secred products.png";
-import farmStayOneImage from "@/assets/farm stay-1.png";
-import farmStayTwoImage from "@/assets/farm stay-2.png";
-import farmStayThreeImage from "@/assets/farm stay-3.png";
-import farmStayWideImage from "@/assets/farm-stay.jpg";
 import shopProductImage from "@/assets/shop product.png";
 import testimonialBgImage from "@/assets/testimonial_bg.png";
 import aboutHomeImage from "@/assets/About-home.png";
@@ -107,14 +103,7 @@ const stayFolderSlides = Object.entries(stayFolderAssets)
   .sort(([a], [b]) => a.localeCompare(b))
   .map(([, src]) => src);
 
-const fallbackStaySlides = [
-  farmStayOneImage,
-  farmStayTwoImage,
-  farmStayThreeImage,
-  farmStayWideImage,
-];
-
-const farmStaySlides = stayFolderSlides.length > 0 ? stayFolderSlides : fallbackStaySlides;
+const farmStaySlides = stayFolderSlides;
 
 const Index = () => {
   const [activeBanner, setActiveBanner] = useState(0);
@@ -175,6 +164,7 @@ const Index = () => {
   }, [visibleTestimonials]);
 
   useEffect(() => {
+    if (farmStaySlides.length === 0) return;
     const roomSliderTimer = window.setInterval(() => {
       setActiveFarmStaySlide((prev) => (prev + 1) % farmStaySlides.length);
     }, 3000);
@@ -235,7 +225,7 @@ const Index = () => {
               }`}
             />
           ))}
-          <div className="absolute inset-0 bg-black/5" />
+          <div className="absolute inset-0 bg-black/20" />
         </div>
 
         <div className="container relative z-10">
@@ -245,8 +235,8 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
             className={`max-w-[96%] sm:max-w-[82%] md:max-w-[62%] lg:max-w-[50%] xl:max-w-[46%] rounded-2xl px-3 py-3 sm:px-6 sm:py-6 md:px-8 md:py-8 ${
-              currentSlide.theme === "strawberry" ? "mr-auto bg-white/68" : "bg-white/78"
-            } backdrop-blur-[2px]`}
+              currentSlide.theme === "strawberry" ? "mr-auto bg-white/78" : "bg-white/88"
+            } backdrop-blur-[4px] shadow-lg`}
           >
             <p
               className={`leading-tight mb-2 sm:mb-3 ${
@@ -261,7 +251,7 @@ const Index = () => {
               className={`leading-tight mb-2 sm:mb-3 ${
                 currentSlide.theme === "strawberry"
                   ? "text-[#9d673f] text-sm sm:text-2xl md:text-3xl font-extrabold tracking-[0.09em] sm:tracking-[0.18em]"
-                  : "text-[#06533A] text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold"
+                  : "text-[#06533A] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight"
               }`}
             >
               {currentSlide.title}
@@ -270,7 +260,7 @@ const Index = () => {
               className={`leading-snug sm:leading-relaxed mb-4 sm:mb-6 max-w-2xl ${
                 currentSlide.theme === "strawberry"
                   ? "text-[#4a4a4a] text-sm sm:text-xl md:text-[2rem]"
-                  : "text-[#0A573D] text-sm sm:text-base md:text-lg"
+                  : "text-[#0A573D] text-base sm:text-lg md:text-xl font-medium"
               }`}
             >
               {currentSlide.description}
@@ -329,14 +319,21 @@ const Index = () => {
                   </p>
                 </div>
                 <p className="!text-[1rem] md:!text-[1.06rem] lg:!text-[1.1rem] !leading-[1.7]">
-                  Experience nature, village life, and organic living in the heart of Maharashtra.
-                  Stay with us, meet our farm animals, and enjoy our range of fresh organic products.
+                  Rushivan Aagro, located near Mahabaleshwar, offers a premium farmstay experience
+                  alongside naturally grown organic farm products cultivated through sustainable
+                  farming practices. Guests enjoy a peaceful countryside retreat while our farm
+                  produces high-quality, chemical-free organic food, carefully harvested and
+                  delivered directly from farm to consumer - preserving freshness, purity, and
+                  authentic flavour. Whether you seek a rejuvenating rural escape or trusted organic
+                  produce, Rushivan Aagro represents refined, sustainable living.
                 </p>
                 <p className="!text-[0.95rem] md:!text-[1rem] lg:!text-[1.04rem] !leading-[1.7]">
-                  रुशिवन ॲग्रोमध्ये   आपले स्वागत आहे. निसर्गाच्या सान्निध्यातील आमच्या शेत-निवासाचा
-                  अनुभव घ्या. महाराष्ट्रातील ग्रामीण जीवन, निसर्ग आणि सेंद्रिय उत्पादनांचा आनंद घ्या.
-                  आमच्यासोबत रहा, आमच्या शेतातील प्राण्यांना भेटा आणि ताज्या सेंद्रिय उत्पादनांचा
-                  आस्वाद घ्या.
+                  महाबळेश्वरजवळ वसलेले ऋषीवन आग्रो येथे प्रीमियम फार्मस्टेचा अनुभव आणि शाश्वत शेती
+                  पद्धतींनी पिकवलेली सेंद्रिय उत्पादने उपलब्ध आहेत. शांत ग्रामीण वातावरणात निवांत
+                  मुक्काम करताना रसायनमुक्त, उच्च प्रतीची उत्पादने थेट शेतातून ग्राहकांपर्यंत
+                  पोहोचवली जातात, ज्यामुळे शुद्धता, ताजेपणा आणि नैसर्गिक चव कायम राहते. आरामदायी
+                  वास्तव्य किंवा विश्वासार्ह सेंद्रिय उत्पादनांची निवड - ऋषीवन आग्रो हे शाश्वत
+                  जीवनशैलीचे उत्कृष्ट उदाहरण आहे.
                 </p>
               </div>
             </div>
@@ -501,7 +498,7 @@ const Index = () => {
               </p>
               <ul className="space-y-3 mb-8">
                 {["2 cozy cottage rooms", "Stay for up to 12-15 people", "Farm experiences & homely healthy meals"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-sm">
+                  <li key={item} className="flex items-center gap-3 text-base leading-relaxed">
                     <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <span className="w-2 h-2 rounded-full bg-primary" />
                     </span>
@@ -556,13 +553,20 @@ const Index = () => {
                   className="w-full shrink-0 px-3"
                   style={{ width: `${100 / visibleTestimonials}%` }}
                 >
-                  <div className="bg-card p-6 rounded-2xl border border-border h-full">
+                  <div className="bg-card p-5 md:p-6 rounded-2xl border border-border h-[240px] sm:h-[260px] lg:h-[280px] flex flex-col">
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: t.rating }).map((_, j) => (
                         <Star key={j} className="w-4 h-4 fill-gold text-gold" />
                       ))}
                     </div>
-                    <p className="text-foreground/80 text-sm leading-relaxed mb-4 font-serif italic">
+                    <p
+                      className="text-foreground/80 text-sm leading-relaxed mb-4 font-serif italic flex-1 overflow-hidden"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 6,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
                       "{t.text}"
                     </p>
                     <div>
@@ -600,3 +604,8 @@ const Index = () => {
 };
 
 export default Index;
+
+
+
+
+

@@ -34,6 +34,14 @@ interface CheckoutOrderItem {
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const buildInvoiceId = () => {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const token = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `INV-${y}${m}${d}-${token}`;
+};
 
 const GST_BY_PRODUCT_KEYWORD: Array<{ key: string; rate: number }> = [
   { key: "tur dal", rate: 5 },
@@ -273,9 +281,35 @@ const Checkout = () => {
 
     setIsPaying(true);
     try {
+      if (!API_BASE_URL) {
+        throw new Error("API base URL is missing.");
+      }
+      const invoiceId = buildInvoiceId();
+      const razorpayOrderResponse = await fetch(`${API_BASE_URL}/api/payments/razorpay/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          amount: checkoutData.totalAmount,
+          currency: "INR",
+          customer_name: form.fullName,
+          customer_email: form.email,
+          customer_phone: form.phone,
+        }),
+      });
+      const razorpayOrderData = (await razorpayOrderResponse.json().catch(() => ({}))) as {
+        id?: string;
+        message?: string;
+      };
+      if (!razorpayOrderResponse.ok || !razorpayOrderData.id) {
+        throw new Error(razorpayOrderData.message || "Unable to create Razorpay order.");
+      }
+
       const paymentResponse = await openRazorpayCheckout({
         amountInRupees: checkoutData.totalAmount,
         productName: checkoutData.productName,
+        razorpayOrderId: razorpayOrderData.id,
+        invoiceId,
         customer: {
           name: form.fullName,
           email: form.email,
@@ -285,27 +319,26 @@ const Checkout = () => {
         },
       });
 
-      if (API_BASE_URL) {
-        await fetch(`${API_BASE_URL}/api/orders`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            customer_name: form.fullName,
-            customer_email: form.email,
-            customer_phone: form.phone,
-            customer_address: form.address,
-            customer_pincode: form.pincode,
-            total_amount: checkoutData.totalAmount,
-            payment_status: "Paid",
-            order_status: "Pending",
-            razorpay_order_id: paymentResponse.razorpay_order_id || "",
-            razorpay_payment_id: paymentResponse.razorpay_payment_id || "",
-            razorpay_signature: paymentResponse.razorpay_signature || "",
-            items: checkoutData.orderItems,
-          }),
-        });
-      }
+      await fetch(`${API_BASE_URL}/api/orders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          customer_name: form.fullName,
+          customer_email: form.email,
+          customer_phone: form.phone,
+          customer_address: form.address,
+          customer_pincode: form.pincode,
+          total_amount: checkoutData.totalAmount,
+          payment_status: "Paid",
+          order_status: "Pending",
+          invoice_id: invoiceId,
+          razorpay_order_id: paymentResponse.razorpay_order_id || razorpayOrderData.id || "",
+          razorpay_payment_id: paymentResponse.razorpay_payment_id || "",
+          razorpay_signature: paymentResponse.razorpay_signature || "",
+          items: checkoutData.orderItems,
+        }),
+      });
 
       alert("Payment successful.");
       if (target === "cart") {
