@@ -7,7 +7,7 @@ import checkoutBreadcrumbImage from "@/assets/checkout_breadcrub.png";
 import { products } from "@/data/mockData";
 import { getCartDetailedItems, clearCart } from "@/lib/cart";
 import { openRazorpayCheckout } from "@/lib/razorpay";
-import { getCachedPublicCatalog, getPublicProducts, type PublicProduct } from "@/lib/public-api";
+import { getCachedPublicCatalog, getPublicProductById, getPublicProducts, type PublicProduct } from "@/lib/public-api";
 import { customerApi } from "@/lib/customerApi";
 
 interface CheckoutFormState {
@@ -126,13 +126,18 @@ const Checkout = () => {
       setSingleProduct(null);
       return;
     }
-    const fromCatalog = catalog.find((item) => item.id === productId) || null;
-    if (fromCatalog) {
-      setSingleProduct(fromCatalog);
-      return;
-    }
-    const cached = getCachedPublicCatalog().find((item) => item.id === productId) || null;
-    setSingleProduct(cached);
+    const fallback =
+      catalog.find((item) => item.id === productId) ||
+      getCachedPublicCatalog().find((item) => item.id === productId) ||
+      null;
+    setSingleProduct(fallback);
+    getPublicProductById(productId)
+      .then((freshProduct) => {
+        if (freshProduct) {
+          setSingleProduct(freshProduct);
+        }
+      })
+      .catch(() => undefined);
   }, [target, catalog]);
 
   const checkoutData = useMemo(() => {
@@ -159,19 +164,24 @@ const Checkout = () => {
         const catalogProduct =
           catalog.find((catalogItem) => catalogItem.id === item.product.id) ||
           catalog.find((catalogItem) => catalogItem.name.trim().toLowerCase() === item.product.name.trim().toLowerCase());
+        const variationLabel =
+          item.variationLabel ||
+          (item.variationId != null
+            ? catalogProduct?.variations?.find((variation) => variation.id === item.variationId)?.value || ""
+            : "");
         return {
           product_id: item.product.id,
           variation_id: item.variationId ?? null,
           attribute_name: item.variationAttribute || "",
-          term_name: item.variationLabel || "",
-          variation_value: item.variationLabel || "",
+          term_name: variationLabel,
+          variation_value: variationLabel,
           quantity_value: null,
           unit: null,
           sku: item.sku ?? null,
           gst_rate: resolveGstRate(item.product.name, Number(catalogProduct?.gstRate ?? item.product.gstRate ?? 0)),
-          product_name: item.product.name,
+          product_name: variationLabel ? `${item.product.name} (${variationLabel})` : item.product.name,
           quantity: item.quantity,
-          unit_price: Number(item.unitPrice || item.product.price),
+          unit_price: Number(item.unitPrice ?? item.product.price),
         };
       }) as CheckoutOrderItem[];
       const subtotal = orderItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
@@ -191,7 +201,8 @@ const Checkout = () => {
     }
 
     const productId = Number(target);
-    const variationId = Number(searchParams.get("variationId") || 0);
+    const variationIdParam = searchParams.get("variationId");
+    const variationId = variationIdParam ? Number(variationIdParam) : null;
     const catalogProduct =
       singleProduct ||
       catalog.find((item) => item.id === productId) ||
@@ -200,7 +211,9 @@ const Checkout = () => {
     if (!product) return null;
     const selectedVariation =
       "variations" in product && Array.isArray(product.variations)
-        ? product.variations.find((item) => item.id === variationId) || product.variations[0]
+        ? variationId != null
+          ? product.variations.find((item) => item.id === variationId) || product.variations[0]
+          : product.variations[0]
         : null;
     const selectedLabel = selectedVariation ? selectedVariation.value : product.unit;
     const selectedPrice = selectedVariation ? Number(selectedVariation.price) : Number(product.price);
@@ -428,13 +441,13 @@ const Checkout = () => {
                   {appliedGstLabel}
                 </p>
                 <p>
-                  <span className="font-semibold">Subtotal:</span> â‚¹ {checkoutData.subtotal.toFixed(2)}
+                  <span className="font-semibold">Subtotal:</span> {"\u20B9"} {checkoutData.subtotal.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-semibold">GST:</span> â‚¹ {checkoutData.gstAmount.toFixed(2)}
+                  <span className="font-semibold">GST:</span> {"\u20B9"} {checkoutData.gstAmount.toFixed(2)}
                 </p>
                 <p>
-                  <span className="font-semibold">Payable Amount:</span> â‚¹ {checkoutData.totalAmount.toFixed(2)}
+                  <span className="font-semibold">Payable Amount:</span> {"\u20B9"} {checkoutData.totalAmount.toFixed(2)}
                 </p>
               </div>
 

@@ -79,7 +79,7 @@ const ProductDetails = () => {
   };
 
   const displayPrice = selectedVariation ? selectedVariation.price : product.price;
-  const displayStock = selectedVariation ? selectedVariation.stock : Number(product.stockQuantity || 0);
+  const availableStock = selectedVariation ? selectedVariation.stock : Number(product.stockQuantity || 0);
   const displayUnit = selectedVariation
     ? selectedVariation.quantity_value != null && selectedVariation.unit
       ? `${selectedVariation.quantity_value} ${selectedVariation.unit}`
@@ -118,7 +118,6 @@ const ProductDetails = () => {
                 Selected Option: {selectedVariation?.attribute_name ? `${selectedVariation.attribute_name}: ` : ""}
                 {displayUnit}
               </p>
-              <p className="text-sm text-muted-foreground mb-3">Stock: {displayStock}</p>
               <div className="flex items-end gap-3 mb-6">
                 <span className="text-2xl font-bold text-primary">{"\u20B9"} {displayPrice}</span>
               </div>
@@ -149,7 +148,7 @@ const ProductDetails = () => {
                 </div>
               ))}
 
-              {displayStock > 0 ? (
+              {availableStock > 0 ? (
                 <div className="flex flex-wrap gap-3">
                   <Button onClick={() => navigate(`/checkout/${product.id}?variationId=${selectedVariation?.id ?? ""}`)}>
                     Buy Now
