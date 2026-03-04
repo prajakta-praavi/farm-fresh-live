@@ -33,7 +33,9 @@ interface CheckoutOrderItem {
   unit_price: number;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const FALLBACK_API_BASE_URL =
+  typeof window !== "undefined" ? `${window.location.origin}/backend` : "";
 const buildInvoiceId = () => {
   const now = new Date();
   const y = now.getFullYear();
@@ -79,6 +81,29 @@ const resolveGstRate = (name: string, fallbackRate: number): number => {
   const matched = GST_BY_PRODUCT_KEYWORD.find((item) => normalized.includes(item.key));
   if (matched) return matched.rate;
   return Number.isFinite(fallbackRate) ? fallbackRate : 0;
+};
+
+const createRazorpayOrder = async (
+  baseUrl: string,
+  payload: {
+    amount: number;
+    currency: string;
+    customer_name: string;
+    customer_email: string;
+    customer_phone: string;
+  }
+) => {
+  const response = await fetch(`${baseUrl}/api/payments/razorpay/order`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    id?: string;
+    message?: string;
+  };
+  return { response, data };
 };
 
 const Checkout = () => {
@@ -298,30 +323,43 @@ const Checkout = () => {
         throw new Error("API base URL is missing.");
       }
       const invoiceId = buildInvoiceId();
-      const razorpayOrderResponse = await fetch(`${API_BASE_URL}/api/payments/razorpay/order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          amount: checkoutData.totalAmount,
-          currency: "INR",
-          customer_name: form.fullName,
-          customer_email: form.email,
-          customer_phone: form.phone,
-        }),
-      });
-      const razorpayOrderData = (await razorpayOrderResponse.json().catch(() => ({}))) as {
-        id?: string;
-        message?: string;
+      const orderPayload = {
+        amount: checkoutData.totalAmount,
+        currency: "INR",
+        customer_name: form.fullName,
+        customer_email: form.email,
+        customer_phone: form.phone,
       };
-      if (!razorpayOrderResponse.ok || !razorpayOrderData.id) {
-        throw new Error(razorpayOrderData.message || "Unable to create Razorpay order.");
+
+      let resolvedApiBaseUrl = API_BASE_URL;
+      let razorpayOrderResult = await createRazorpayOrder(API_BASE_URL, orderPayload);
+
+      const shouldTryFallback =
+        (!razorpayOrderResult.response.ok &&
+          (razorpayOrderResult.response.status === 404 ||
+            (razorpayOrderResult.data.message || "").toLowerCase().includes("route not found"))) ||
+        !razorpayOrderResult.data.id;
+
+      if (
+        shouldTryFallback &&
+        FALLBACK_API_BASE_URL &&
+        FALLBACK_API_BASE_URL !== API_BASE_URL
+      ) {
+        const fallbackResult = await createRazorpayOrder(FALLBACK_API_BASE_URL, orderPayload);
+        if (fallbackResult.response.ok && fallbackResult.data.id) {
+          resolvedApiBaseUrl = FALLBACK_API_BASE_URL;
+          razorpayOrderResult = fallbackResult;
+        }
+      }
+
+      if (!razorpayOrderResult.response.ok || !razorpayOrderResult.data.id) {
+        throw new Error(razorpayOrderResult.data.message || "Unable to create Razorpay order.");
       }
 
       const paymentResponse = await openRazorpayCheckout({
         amountInRupees: checkoutData.totalAmount,
         productName: checkoutData.productName,
-        razorpayOrderId: razorpayOrderData.id,
+        razorpayOrderId: razorpayOrderResult.data.id,
         invoiceId,
         customer: {
           name: form.fullName,
@@ -332,7 +370,7 @@ const Checkout = () => {
         },
       });
 
-      await fetch(`${API_BASE_URL}/api/orders`, {
+      await fetch(`${resolvedApiBaseUrl}/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -346,7 +384,7 @@ const Checkout = () => {
           payment_status: "Paid",
           order_status: "Pending",
           invoice_id: invoiceId,
-          razorpay_order_id: paymentResponse.razorpay_order_id || razorpayOrderData.id || "",
+          razorpay_order_id: paymentResponse.razorpay_order_id || razorpayOrderResult.data.id || "",
           razorpay_payment_id: paymentResponse.razorpay_payment_id || "",
           razorpay_signature: paymentResponse.razorpay_signature || "",
           items: checkoutData.orderItems,
