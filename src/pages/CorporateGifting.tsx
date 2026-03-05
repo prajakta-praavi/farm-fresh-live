@@ -3,10 +3,6 @@ import PageBreadcrumb from "@/components/PageBreadcrumb";
 import giftingBreadcrumbImage from "@/assets/gifting breadcrub.png";
 import giftingStoryImage from "@/assets/girt-scaled.webp";
 import giftingPromoBannerImage from "@/assets/gift banner.webp";
-import giftingGridImage1 from "@/assets/IMG_0456-1-scaled.webp";
-import giftingGridImage2 from "@/assets/IMG_03991-scaled.webp";
-import giftingGridImage3 from "@/assets/IMG_0456-scaled.webp";
-import giftingGridImage4 from "@/assets/girt-1-scaled.webp";
 import giftingVideo1 from "@/assets/short-2.mp4";
 import giftingVideo2 from "@/assets/short-3.mp4";
 import giftingVideo3 from "@/assets/short-4.mp4";
@@ -67,44 +63,10 @@ const CorporateGifting = () => {
             />
           </section>
 
-          <section className="mb-14 space-y-6 text-foreground">
-            <p className="text-base leading-relaxed md:text-[1.05rem]">
-              Make every professional relationship stronger with <strong>Rushivan Aagro Corporate
-              Gifting</strong> - a perfect blend of purity, health, and heartfelt tradition. Our
-              hampers are thoughtfully curated with 🌾 chemical-free grains, 🍯 healthy homemade
-              products, 🍰 traditional delights, and 🌿 natural, NA-certified items, all beautifully
-              packed for a premium gifting experience.
-            </p>
-            <p className="text-base leading-relaxed md:text-[1.05rem]">
-              Whether you want to appreciate your employees, delight your clients, or send warm
-              wishes to business partners, our corporate hampers bring a touch of authenticity and
-              freshness that stands out. Every product is made with homemade care, premium-quality
-              ingredients, and zero preservatives, making your gift meaningful, memorable, and
-              healthy.
-            </p>
-            <p className="text-base leading-relaxed md:text-[1.05rem]">
-              We also offer attractive 🎁 bulk offers, 🧺 customized hampers, and 💼 corporate
-              packaging so you can choose exactly what reflects your brand and emotions.
-            </p>
-          </section>
-
           <section className="mb-14">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {[giftingGridImage1, giftingGridImage2, giftingGridImage3, giftingGridImage4].map(
-                (imgSrc, idx) => (
-                  <div key={idx} className="overflow-hidden">
-                    <img
-                      src={imgSrc}
-                      alt={`Corporate gifting collection ${idx + 1}`}
-                      className="h-[260px] w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
-                    />
-                  </div>
-                )
-              )}
-            </div>
-          </section>
-
-          <section className="mb-14">
+            <h2 className="mb-6 text-center text-2xl font-display font-bold md:text-3xl">
+              Our Corporate Hamper Collection
+            </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[giftingVideo1, giftingVideo2, giftingVideo3, giftingVideo4].map((videoSrc, idx) => (
                 <div key={idx} className="overflow-hidden bg-black">

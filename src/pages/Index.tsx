@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -32,7 +32,7 @@ import { getPublicProducts, type PublicProduct } from "@/lib/public-api";
 
 const categoryData = [
   { name: "Grains & Pulses", image: grainsAndPulsesImage },
-  { name: "Natural Sweetness", image: naturalSweetnessImage },
+  { name: "Natural Sweeteners", image: naturalSweetnessImage },
   { name: "Spices & Condiments", image: spicesAndCondimentsImage },
   { name: "Dairy Products", image: dairyProductsImage },
   { name: "Fresh Fruits", image: freshFruitsImage },
@@ -319,21 +319,17 @@ const Index = () => {
                   </p>
                 </div>
                 <p className="!text-[1rem] md:!text-[1.06rem] lg:!text-[1.1rem] !leading-[1.7]">
-                  Rushivan Aagro, located near Mahabaleshwar, offers a premium farmstay experience
-                  alongside naturally grown organic farm products cultivated through sustainable
-                  farming practices. Guests enjoy a peaceful countryside retreat while our farm
-                  produces high-quality, chemical-free organic food, carefully harvested and
-                  delivered directly from farm to consumer - preserving freshness, purity, and
-                  authentic flavour. Whether you seek a rejuvenating rural escape or trusted organic
-                  produce, Rushivan Aagro represents refined, sustainable living.
+                  Rushivan Aagro near Mahabaleshwar offers a premium farmstay experience and
+                  naturally grown organic farm products. Enjoy a peaceful countryside retreat with
+                  homely farm meals and easy access from Pune and Mumbai. We cultivate chemical-free
+                  produce through sustainable farming and deliver fresh, high-quality organic food
+                  directly from our farm to your home.
                 </p>
                 <p className="!text-[0.95rem] md:!text-[1rem] lg:!text-[1.04rem] !leading-[1.7]">
-                  महाबळेश्वरजवळ वसलेले ऋषीवन आग्रो येथे प्रीमियम फार्मस्टेचा अनुभव आणि शाश्वत शेती
-                  पद्धतींनी पिकवलेली सेंद्रिय उत्पादने उपलब्ध आहेत. शांत ग्रामीण वातावरणात निवांत
-                  मुक्काम करताना रसायनमुक्त, उच्च प्रतीची उत्पादने थेट शेतातून ग्राहकांपर्यंत
-                  पोहोचवली जातात, ज्यामुळे शुद्धता, ताजेपणा आणि नैसर्गिक चव कायम राहते. आरामदायी
-                  वास्तव्य किंवा विश्वासार्ह सेंद्रिय उत्पादनांची निवड - ऋषीवन आग्रो हे शाश्वत
-                  जीवनशैलीचे उत्कृष्ट उदाहरण आहे.
+                  ऋषीवन आग्रो, महाबळेश्वरजवळील प्रीमियम फार्मस्टे आणि सेंद्रिय उत्पादनांचे विश्वसनीय
+                  ठिकाण. शांत ग्रामीण वातावरण, घरगुती जेवण आणि पुणे-मुंबईहून सोयीस्कर पोहोच.
+                  शाश्वत शेती पद्धतींनी पिकवलेली रसायनमुक्त, ताजी उत्पादने थेट शेतातून
+                  ग्राहकांपर्यंत.
                 </p>
               </div>
             </div>

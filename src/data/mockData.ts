@@ -169,7 +169,7 @@ export const products = [
     name: "Strawberry Jam",
     price: 150,
     image: strawberryJamImage,
-    category: "Natural Sweetness",
+    category: "Natural Sweeteners",
     unit: "250gm",
     hsnCode: "20079990",
     variants: [{ label: "250gm", price: 150 }],
@@ -194,7 +194,7 @@ export const products = [
     name: "Raw Honey",
     price: 90,
     image: honeyImage,
-    category: "Natural Sweetness",
+    category: "Natural Sweeteners",
     unit: "100gm",
     hsnCode: "7133300",
     variants: [
@@ -265,7 +265,7 @@ export const products = [
     name: "Jaggery Block",
     price: 135,
     image: jaggeryBlockImage,
-    category: "Natural Sweetness",
+    category: "Natural Sweeteners",
     unit: "1kg",
     hsnCode: "17011310",
     variants: [{ label: "1kg", price: 135 }],
@@ -275,7 +275,7 @@ export const products = [
     name: "Jaggery Cubes",
     price: 150,
     image: jaggeryCubesImage,
-    category: "Natural Sweetness",
+    category: "Natural Sweeteners",
     unit: "1kg",
     hsnCode: "17011310",
     variants: [{ label: "1kg", price: 150 }],
@@ -285,7 +285,7 @@ export const products = [
     name: "Jaggery Powder",
     price: 220,
     image: jaggeryPowderImage,
-    category: "Natural Sweetness",
+    category: "Natural Sweeteners",
     unit: "1kg",
     hsnCode: "17011310",
     variants: [{ label: "1kg", price: 220 }],
@@ -345,16 +345,6 @@ export const products = [
       { label: "100", price: 600 },
     ],
   },
-  {
-    id: 25,
-    name: "Payment Test Product",
-    price: 1,
-    image: honeyImage,
-    category: "Natural Sweetness",
-    unit: "1pc",
-    hsnCode: "21069099",
-    variants: [{ label: "1pc", price: 1 }],
-  },
 ];
 
 export const categories = [
@@ -363,7 +353,7 @@ export const categories = [
   "Dairy Products",
   "Fresh Fruits",
   "Gau Seva Sacred Products",
-  "Natural Sweetness",
+  "Natural Sweeteners",
   "Spices & Condiments",
 ];
 

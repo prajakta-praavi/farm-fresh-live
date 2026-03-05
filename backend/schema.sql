@@ -136,7 +136,7 @@ INSERT IGNORE INTO categories (id, name) VALUES
   (1, 'Dairy Products'),
   (2, 'Fresh Fruits'),
   (3, 'Gau Seva Products'),
-  (4, 'Natural Sweetness'),
+  (4, 'Natural Sweeteners'),
   (5, 'Spices & Condiments'),
   (6, 'Grains & Pulses'),
   (7, 'Farm Stay');

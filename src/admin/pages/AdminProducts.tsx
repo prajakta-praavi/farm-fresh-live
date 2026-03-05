@@ -47,7 +47,7 @@ const fallbackCategories: Category[] = [
   { id: 1, name: "Dairy Products" },
   { id: 2, name: "Fresh Fruits" },
   { id: 3, name: "Gau Seva Products" },
-  { id: 4, name: "Natural Sweetness" },
+  { id: 4, name: "Natural Sweeteners" },
   { id: 5, name: "Spices & Condiments" },
   { id: 6, name: "Grains & Pulses" },
   { id: 7, name: "Farm Stay" },

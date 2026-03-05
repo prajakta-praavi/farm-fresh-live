@@ -287,7 +287,7 @@ function ensureDefaultCategories(): void
         'Dairy Products',
         'Fresh Fruits',
         'Gau Seva Products',
-        'Natural Sweetness',
+        'Natural Sweeteners',
         'Spices & Condiments',
         'Grains & Pulses',
         'Farm Stay',
@@ -302,6 +302,8 @@ function ensureDefaultCategories(): void
 function ensureDefaultProducts(): void
 {
     $pdo = db();
+    $pdo->prepare('DELETE FROM products WHERE LOWER(name) = LOWER(?)')->execute(['Payment Test Product']);
+    $pdo->prepare('DELETE FROM products WHERE LOWER(name) = LOWER(?)')->execute(['Guava']);
 
     $categoryMap = [];
     $rows = $pdo->query('SELECT id, name FROM categories')->fetchAll();
@@ -320,21 +322,20 @@ function ensureDefaultProducts(): void
         ['name' => 'Udid Dal Chilka', 'category' => 'Grains & Pulses', 'price' => 58, 'unit' => '250gm', 'hsn_code' => '7133390', 'gst_rate' => 5, 'image_url' => '/products/udid%20dal%20chika.png'],
         ['name' => 'Pavta / Indian Bean', 'category' => 'Grains & Pulses', 'price' => 55, 'unit' => '250gm', 'hsn_code' => '7082000', 'gst_rate' => 0, 'image_url' => '/products/pavta%20indian%20bean.png'],
         ['name' => 'Organic Strawberry (Winter Down)', 'category' => 'Fresh Fruits', 'price' => 100, 'unit' => '200gm', 'hsn_code' => '8101000', 'gst_rate' => 0, 'image_url' => '/products/strawberry.png'],
-        ['name' => 'Strawberry Jam', 'category' => 'Natural Sweetness', 'price' => 150, 'unit' => '250gm', 'hsn_code' => '20079990', 'gst_rate' => 12, 'image_url' => '/products/strawberry%20jam.png'],
+        ['name' => 'Strawberry Jam', 'category' => 'Natural Sweeteners', 'price' => 150, 'unit' => '250gm', 'hsn_code' => '20079990', 'gst_rate' => 12, 'image_url' => '/products/strawberry%20jam.png'],
         ['name' => 'Desi Gir Cow Ghee', 'category' => 'Dairy Products', 'price' => 350, 'unit' => '100gm', 'hsn_code' => '4059020', 'gst_rate' => 5, 'image_url' => '/products/Cow%20Ghee.png'],
-        ['name' => 'Raw Honey', 'category' => 'Natural Sweetness', 'price' => 90, 'unit' => '100gm', 'hsn_code' => '7133300', 'gst_rate' => 0, 'image_url' => '/products/honey.png'],
+        ['name' => 'Raw Honey', 'category' => 'Natural Sweeteners', 'price' => 90, 'unit' => '100gm', 'hsn_code' => '7133300', 'gst_rate' => 0, 'image_url' => '/products/honey.png'],
         ['name' => 'Rajma / Ghewda', 'category' => 'Grains & Pulses', 'price' => 55, 'unit' => '250gm', 'hsn_code' => '7133300', 'gst_rate' => 0, 'image_url' => '/products/15.png'],
         ['name' => 'Turmeric', 'category' => 'Spices & Condiments', 'price' => 135, 'unit' => '250gm', 'hsn_code' => '9103020', 'gst_rate' => 5, 'image_url' => '/products/Turmeric.png'],
         ['name' => 'Nachani / Finger Millet', 'category' => 'Grains & Pulses', 'price' => 35, 'unit' => '250gm', 'hsn_code' => '10082930', 'gst_rate' => 5, 'image_url' => '/products/nachni%20%282%29.png'],
         ['name' => 'Jawar', 'category' => 'Grains & Pulses', 'price' => 32, 'unit' => '250gm', 'hsn_code' => '10082110', 'gst_rate' => 5, 'image_url' => '/products/jower.png'],
-        ['name' => 'Jaggery Block', 'category' => 'Natural Sweetness', 'price' => 135, 'unit' => '1kg', 'hsn_code' => '17011310', 'gst_rate' => 5, 'image_url' => '/products/Jaggery%20Blocks.png'],
-        ['name' => 'Jaggery Cubes', 'category' => 'Natural Sweetness', 'price' => 150, 'unit' => '1kg', 'hsn_code' => '17011310', 'gst_rate' => 0, 'image_url' => '/products/16.png'],
-        ['name' => 'Jaggery Powder', 'category' => 'Natural Sweetness', 'price' => 220, 'unit' => '1kg', 'hsn_code' => '17011310', 'gst_rate' => 5, 'image_url' => '/products/JAggery%20Powder.png'],
+        ['name' => 'Jaggery Block', 'category' => 'Natural Sweeteners', 'price' => 135, 'unit' => '1kg', 'hsn_code' => '17011310', 'gst_rate' => 5, 'image_url' => '/products/Jaggery%20Blocks.png'],
+        ['name' => 'Jaggery Cubes', 'category' => 'Natural Sweeteners', 'price' => 150, 'unit' => '1kg', 'hsn_code' => '17011310', 'gst_rate' => 0, 'image_url' => '/products/16.png'],
+        ['name' => 'Jaggery Powder', 'category' => 'Natural Sweeteners', 'price' => 220, 'unit' => '1kg', 'hsn_code' => '17011310', 'gst_rate' => 5, 'image_url' => '/products/JAggery%20Powder.png'],
         ['name' => 'Gaumutra', 'category' => 'Gau Seva Products', 'price' => 175, 'unit' => '500ml', 'hsn_code' => '30049011', 'gst_rate' => 5, 'image_url' => '/products/gomutra.png'],
         ['name' => 'Cowdung Dhup', 'category' => 'Gau Seva Products', 'price' => 50, 'unit' => '10 pieces', 'hsn_code' => '33074100', 'gst_rate' => 5, 'image_url' => '/products/dhup.png'],
         ['name' => 'Cowdung Diya', 'category' => 'Gau Seva Products', 'price' => 80, 'unit' => '10 pieces', 'hsn_code' => '31010099', 'gst_rate' => 5, 'image_url' => '/products/Cowdung%20Diya.png'],
         ['name' => 'Cowdung Cake', 'category' => 'Gau Seva Products', 'price' => 60, 'unit' => '10 pieces', 'hsn_code' => '31010092', 'gst_rate' => 5, 'image_url' => '/products/Cowdung%20cake.png'],
-        ['name' => 'Payment Test Product', 'category' => 'Natural Sweetness', 'price' => 1, 'unit' => '1pc', 'hsn_code' => '21069099', 'gst_rate' => 0, 'image_url' => '/products/honey.png'],
     ];
 
     $stmt = $pdo->prepare('

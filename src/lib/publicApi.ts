@@ -30,6 +30,11 @@ export interface PublicProduct {
 
 export const PUBLIC_CATALOG_KEY = "rushivan_public_catalog";
 const DEMO_OUT_OF_STOCK_PRODUCT_NAME = "udid dal plain";
+const EXCLUDED_PRODUCT_NAMES = new Set(["payment test product", "guava"]);
+const normalizeCategoryName = (category: string): string =>
+  (category || "").trim().toLowerCase() === "natural sweetness"
+    ? "Natural Sweeteners"
+    : category || "General";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost/farm-fresh-dwell-main/backend";
@@ -82,7 +87,7 @@ const normalizeProduct = (item: ApiProduct): PublicProduct => ({
   description: item.description || "",
   image: item.image_url || "",
   price: Number(item.price || 0),
-  category: item.category || "General",
+  category: normalizeCategoryName(item.category || ""),
   unit: item.unit || "1 unit",
   hsnCode: item.hsn_code || "",
   gstRate: Number(item.gst_rate || 0),
@@ -101,13 +106,16 @@ const markDemoOutOfStock = (product: PublicProduct): PublicProduct => {
   };
 };
 
+const isExcludedProduct = (product: PublicProduct): boolean =>
+  EXCLUDED_PRODUCT_NAMES.has((product.name || "").trim().toLowerCase());
+
 const toMockProduct = (item: (typeof mockProducts)[number]): PublicProduct => ({
   id: item.id,
   name: item.name,
   description: "",
   image: item.image,
   price: item.price,
-  category: item.category,
+  category: normalizeCategoryName(item.category),
   unit: item.unit,
   hsnCode: item.hsnCode || "",
   gstRate: 0,
@@ -132,7 +140,14 @@ export const getCachedPublicCatalog = (): PublicProduct[] => {
   if (!raw) return mockCatalog;
   try {
     const parsed = JSON.parse(raw) as PublicProduct[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed.map((item) => markDemoOutOfStock(item)) : mockCatalog;
+    return Array.isArray(parsed) && parsed.length > 0
+      ? parsed.map((item) =>
+          markDemoOutOfStock({
+            ...item,
+            category: normalizeCategoryName(item.category || ""),
+          })
+        ).filter((item) => !isExcludedProduct(item))
+      : mockCatalog;
   } catch {
     return mockCatalog;
   }
@@ -145,7 +160,9 @@ export const getPublicProducts = async (): Promise<PublicProduct[]> => {
     if (!response.ok || !Array.isArray(json)) {
       return getCachedPublicCatalog();
     }
-    const mapped = json.map((item) => markDemoOutOfStock(normalizeProduct(item as ApiProduct)));
+    const mapped = json
+      .map((item) => markDemoOutOfStock(normalizeProduct(item as ApiProduct)))
+      .filter((item) => !isExcludedProduct(item));
     if (mapped.length > 0) {
       localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify(mapped));
       return mapped;
@@ -164,6 +181,9 @@ export const getPublicProductById = async (id: number): Promise<PublicProduct | 
       return getCachedPublicCatalog().find((item) => item.id === id) ?? null;
     }
     const normalized = markDemoOutOfStock(normalizeProduct(json as ApiProduct));
+    if (isExcludedProduct(normalized)) {
+      return null;
+    }
     const existing = getCachedPublicCatalog().filter((item) => item.id !== normalized.id);
     localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify([normalized, ...existing]));
     return normalized;

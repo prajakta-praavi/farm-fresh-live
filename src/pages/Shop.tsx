@@ -47,10 +47,8 @@ const Shop = () => {
           image={shopBreadcrumbImage}
           alt="Shop banner"
           title="EXPLORE OUR SHOP"
-          subtitle="ORGANIC & FSSAI CERTIFIED"
           align="center"
           titleClassName="text-[#4a1f00]"
-          subtitleClassName="text-[#0b0b0b]"
           overlayClassName="items-center"
         />
 

@@ -23,12 +23,21 @@ const amenities = [
 ];
 
 const stayGallerySlides = [farmStaySlide1, farmStaySlide2, farmStaySlide3];
+const ROOM_BASE_RATE = 5000;
+const GST_RATE = 18;
 
 const Stay = () => {
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
+  const [rooms, setRooms] = useState(1);
+  const [guests, setGuests] = useState(1);
   const [activeStaySlide, setActiveStaySlide] = useState(0);
   const navigate = useNavigate();
+
+  const maxGuests = rooms * 3;
+  const roomRate = ROOM_BASE_RATE * rooms;
+  const gstAmount = Math.round((roomRate * GST_RATE) / 100);
+  const totalPerNight = roomRate + gstAmount;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -36,6 +45,12 @@ const Stay = () => {
     }, 3000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (guests > maxGuests) {
+      setGuests(maxGuests);
+    }
+  }, [guests, maxGuests]);
 
   return (
     <Layout>
@@ -111,10 +126,6 @@ const Stay = () => {
                           <Star className="h-4 w-4 text-primary" /> Private bathroom
                         </li>
                       </ul>
-                      <div className="mt-4 border-t border-border pt-4">
-                        <span className="text-2xl font-bold text-primary">₹ 5,000</span>
-                        <span className="text-sm text-muted-foreground"> / night + GST</span>
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -185,21 +196,51 @@ const Stay = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium">Number of Rooms</label>
+                    <select
+                      value={rooms}
+                      onChange={(event) => setRooms(Number(event.target.value))}
+                      className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    >
+                      {[1, 2].map((count) => (
+                        <option key={count} value={count}>
+                          {count}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium">Number of Guests</label>
+                    <select
+                      value={guests}
+                      onChange={(event) => setGuests(Number(event.target.value))}
+                      className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                    >
+                      {Array.from({ length: maxGuests }, (_, index) => index + 1).map((count) => (
+                        <option key={count} value={count}>
+                          {count}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {checkIn && checkOut && (
                   <div className="mb-6 space-y-2 rounded-xl bg-muted p-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Room rate</span>
-                      <span>₹ 5,000 / night</span>
+                      <span className="text-muted-foreground">Room rate ({rooms})</span>
+                      <span>{"\u20B9"} {roomRate.toLocaleString()} / night</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">GST (18%)</span>
-                      <span>₹ 900 / night</span>
+                      <span className="text-muted-foreground">GST ({GST_RATE}%)</span>
+                      <span>{"\u20B9"} {gstAmount.toLocaleString()} / night</span>
                     </div>
                     <div className="flex justify-between border-t border-border pt-2 font-bold">
                       <span>Total / night</span>
-                      <span className="text-primary">₹ 5,900</span>
+                      <span className="text-primary">{"\u20B9"} {totalPerNight.toLocaleString()}</span>
                     </div>
                   </div>
                 )}
@@ -212,7 +253,7 @@ const Stay = () => {
                       `/checkout/stay?checkIn=${format(checkIn as Date, "yyyy-MM-dd")}&checkOut=${format(
                         checkOut as Date,
                         "yyyy-MM-dd"
-                      )}`
+                      )}&rooms=${rooms}&guests=${guests}`
                     )
                   }
                 >

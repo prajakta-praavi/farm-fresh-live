@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
-import checkoutBreadcrumbImage from "@/assets/checkout_breadcrub.png";
+import checkoutBreadcrumbImage from "@/assets/checkout_breadcrub.webp";
 import { products } from "@/data/mockData";
 import { getCartDetailedItems, clearCart } from "@/lib/cart";
 import { openRazorpayCheckout } from "@/lib/razorpay";
@@ -169,16 +169,29 @@ const Checkout = () => {
     if (target === "stay") {
       const checkIn = searchParams.get("checkIn");
       const checkOut = searchParams.get("checkOut");
+      const rooms = Math.max(1, Math.min(2, Number(searchParams.get("rooms") || 1)));
+      const maxGuests = rooms * 3;
+      const guests = Math.max(1, Math.min(maxGuests, Number(searchParams.get("guests") || 1)));
+      const roomRate = 5000 * rooms;
+      const gstAmount = Math.round((roomRate * 18) / 100);
+      const totalAmount = roomRate + gstAmount;
       const stayLabel =
         checkIn && checkOut ? `Farm Stay (${checkIn} to ${checkOut})` : "Farm Stay";
       return {
         title: "Farm Stay Checkout",
-        productName: stayLabel,
-        subtotal: 5900,
-        gstAmount: 0,
-        totalAmount: 5900,
+        productName: `${stayLabel} - ${rooms} room(s), ${guests} guest(s)`,
+        subtotal: roomRate,
+        gstAmount,
+        totalAmount,
         backTo: "/stay",
-        orderItems: [{ product_name: stayLabel, quantity: 1, unit_price: 5900, gst_rate: 0 }] as CheckoutOrderItem[],
+        orderItems: [
+          {
+            product_name: `${stayLabel} - ${rooms} room(s), ${guests} guest(s)`,
+            quantity: rooms,
+            unit_price: 5000,
+            gst_rate: 18,
+          },
+        ] as CheckoutOrderItem[],
       };
     }
 
