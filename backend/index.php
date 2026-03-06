@@ -83,6 +83,72 @@ function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $it
     }
 }
 
+function sendCustomerOrderConfirmation(int $orderId, string $invoiceId, array $orderPayload, array $items): void
+{
+    $customerEmail = trim((string) ($orderPayload['customer_email'] ?? ''));
+    if ($customerEmail === '') {
+        return;
+    }
+
+    $customerName = trim((string) ($orderPayload['customer_name'] ?? 'Customer'));
+    $customerPhone = trim((string) ($orderPayload['customer_phone'] ?? ''));
+    $customerAddress = trim((string) ($orderPayload['customer_address'] ?? ''));
+    $customerPincode = trim((string) ($orderPayload['customer_pincode'] ?? ''));
+    $totalAmount = number_format((float) ($orderPayload['total_amount'] ?? 0), 2, '.', '');
+    $paymentStatus = trim((string) ($orderPayload['payment_status'] ?? 'Pending'));
+    $paymentLine = strcasecmp($paymentStatus, 'Paid') === 0
+        ? 'Payment Status: Paid (Payment successful)'
+        : 'Payment Status: ' . ($paymentStatus !== '' ? $paymentStatus : 'Pending');
+
+    $itemLines = [];
+    foreach ($items as $item) {
+        $name = trim((string) ($item['product_name'] ?? 'Product'));
+        $qty = (int) ($item['quantity'] ?? 1);
+        $price = (float) ($item['unit_price'] ?? 0);
+        $itemLines[] = sprintf('- %s | Qty: %d | Unit Price: %.2f', $name, $qty, $price);
+    }
+    $itemsText = count($itemLines) > 0 ? implode("\n", $itemLines) : '- No items';
+
+    $subject = sprintf('Order Confirmation #%d - Rushivan Agro', $orderId);
+    $message = implode("\n", [
+        'Dear ' . ($customerName !== '' ? $customerName : 'Customer') . ',',
+        '',
+        'Thank you for your order at Rushivan Agro.',
+        'Your order has been received successfully.',
+        '',
+        'Order ID: ' . $orderId,
+        'Invoice ID: ' . ($invoiceId !== '' ? $invoiceId : 'N/A'),
+        $paymentLine,
+        'Total Amount: Rs ' . $totalAmount,
+        '',
+        'Contact Details:',
+        'Phone: ' . ($customerPhone !== '' ? $customerPhone : 'N/A'),
+        'Address: ' . ($customerAddress !== '' ? $customerAddress : 'N/A'),
+        'Pincode: ' . ($customerPincode !== '' ? $customerPincode : 'N/A'),
+        '',
+        'Items:',
+        $itemsText,
+        '',
+        'We will contact you soon regarding delivery updates.',
+        '',
+        'Regards,',
+        'Rushivan Agro',
+    ]);
+
+    $fromEmail = trim((string) env('MAIL_FROM', 'noreply@rushivanagro.com'));
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: Rushivan Agro <' . $fromEmail . '>',
+    ];
+
+    try {
+        @mail($customerEmail, $subject, $message, implode("\r\n", $headers));
+    } catch (Throwable $e) {
+        // Do not fail checkout if email service is unavailable.
+    }
+}
+
 function httpBuildQuerySafe(array $params): string
 {
     return http_build_query($params, '', '&', PHP_QUERY_RFC3986);
@@ -1018,6 +1084,7 @@ try {
         }
         $pdo->commit();
         sendOwnerOrderNotification($orderId, $body, $items);
+        sendCustomerOrderConfirmation($orderId, $invoiceId, $body, $items);
         jsonResponse(['id' => $orderId, 'invoice_id' => $invoiceId, 'message' => 'Order stored'], 201);
     }
 

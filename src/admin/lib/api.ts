@@ -12,15 +12,28 @@ import type {
 } from "@/admin/types";
 import { clearAdminSession, getAdminToken } from "@/admin/lib/auth";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost/farm-fresh-dwell-main/backend";
-
-const buildUrl = (path: string) => `${API_BASE_URL}${path}`;
+const CONFIGURED_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const FALLBACK_API_BASE_URLS =
+  typeof window !== "undefined"
+    ? [`${window.location.origin}/backend`, "https://api.rushivanagro.com", "https://www.rushivanagro.com/backend"]
+    : [];
+const API_BASE_CANDIDATES = Array.from(
+  new Set([CONFIGURED_API_BASE_URL, ...FALLBACK_API_BASE_URLS].filter(Boolean))
+);
+const buildUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
 
 function handleUnauthorized(response: Response): void {
   if (response.status !== 401) return;
   clearAdminSession();
   window.location.href = "/admin/login";
 }
+
+const isRouteNotFound = (response: Response, payload: unknown): boolean => {
+  if (response.status === 404) return true;
+  if (!payload || typeof payload !== "object") return false;
+  const message = String((payload as { message?: string }).message || "").toLowerCase();
+  return message.includes("route not found");
+};
 
 async function request<T>(path: string, init?: RequestInit, withAuth = true): Promise<T> {
   const headers = new Headers(init?.headers || {});
@@ -30,18 +43,74 @@ async function request<T>(path: string, init?: RequestInit, withAuth = true): Pr
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(buildUrl(path), {
-    ...init,
-    headers,
-    credentials: "include",
-  });
-  handleUnauthorized(response);
+  let lastError: Error | null = null;
+  for (const baseUrl of API_BASE_CANDIDATES) {
+    try {
+      const response = await fetch(buildUrl(baseUrl, path), {
+        ...init,
+        headers,
+        credentials: "include",
+      });
+      handleUnauthorized(response);
 
-  const json = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(json?.message || "Request failed");
+      const json = await response.json().catch(() => ({}));
+      if (response.ok) {
+        return json as T;
+      }
+
+      const errorMessage = String((json as { message?: string }).message || "Request failed");
+      const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
+      if (!isLastCandidate && isRouteNotFound(response, json)) {
+        continue;
+      }
+      throw new Error(errorMessage);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Failed to fetch");
+      const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
+      if (!isLastCandidate) {
+        continue;
+      }
+    }
   }
-  return json as T;
+  throw lastError || new Error("Failed to fetch");
+}
+
+async function uploadRequest<T>(path: string, formData: FormData, defaultMessage: string): Promise<T> {
+  const headers = new Headers();
+  const token = getAdminToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  let lastError: Error | null = null;
+  for (const baseUrl of API_BASE_CANDIDATES) {
+    try {
+      const response = await fetch(buildUrl(baseUrl, path), {
+        method: "POST",
+        headers,
+        body: formData,
+        credentials: "include",
+      });
+      handleUnauthorized(response);
+
+      const json = await response.json().catch(() => ({}));
+      if (response.ok) {
+        return json as T;
+      }
+
+      const errorMessage = String((json as { message?: string }).message || defaultMessage);
+      const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
+      if (!isLastCandidate && isRouteNotFound(response, json)) {
+        continue;
+      }
+      throw new Error(errorMessage);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(defaultMessage);
+      const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
+      if (!isLastCandidate) {
+        continue;
+      }
+    }
+  }
+  throw lastError || new Error(defaultMessage);
 }
 
 export const adminApi = {
@@ -63,24 +132,7 @@ export const adminApi = {
   uploadAdminProfileImage: async (file: File) => {
     const formData = new FormData();
     formData.append("image", file);
-
-    const headers = new Headers();
-    const token = getAdminToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-
-    const response = await fetch(buildUrl("/api/admin/profile/photo"), {
-      method: "POST",
-      headers,
-      body: formData,
-      credentials: "include",
-    });
-    handleUnauthorized(response);
-
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(json?.message || "Profile image upload failed");
-    }
-    return json as { profile_image: string };
+    return uploadRequest<{ profile_image: string }>("/api/admin/profile/photo", formData, "Profile image upload failed");
   },
 
   getOverview: () => request<DashboardOverview>("/api/dashboard/overview"),
@@ -154,24 +206,7 @@ export const adminApi = {
   uploadProductImage: async (file: File) => {
     const formData = new FormData();
     formData.append("image", file);
-
-    const headers = new Headers();
-    const token = getAdminToken();
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-
-    const response = await fetch(buildUrl("/api/uploads"), {
-      method: "POST",
-      headers,
-      body: formData,
-      credentials: "include",
-    });
-    handleUnauthorized(response);
-
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(json?.message || "Image upload failed");
-    }
-    return json as { image_url: string };
+    return uploadRequest<{ image_url: string }>("/api/uploads", formData, "Image upload failed");
   },
 
   getCustomers: (search = "") =>
