@@ -26,6 +26,20 @@ $path = getPath();
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $body = parseJsonBody();
 
+function fileUploadErrorMessage(int $errorCode, string $missingFileMessage = 'Image file is required'): string
+{
+    return match ($errorCode) {
+        UPLOAD_ERR_INI_SIZE => 'Image upload failed: file exceeds server upload_max_filesize limit',
+        UPLOAD_ERR_FORM_SIZE => 'Image upload failed: file exceeds form size limit',
+        UPLOAD_ERR_PARTIAL => 'Image upload failed: file was only partially uploaded',
+        UPLOAD_ERR_NO_FILE => $missingFileMessage,
+        UPLOAD_ERR_NO_TMP_DIR => 'Image upload failed: temporary upload directory is missing on server',
+        UPLOAD_ERR_CANT_WRITE => 'Image upload failed: cannot write file to disk',
+        UPLOAD_ERR_EXTENSION => 'Image upload failed: blocked by a PHP extension',
+        default => 'Image upload failed',
+    };
+}
+
 function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $items): void
 {
     $ownerEmail = trim((string) env('ORDER_NOTIFICATION_EMAIL', 'rushivanagro@gmail.com'));
@@ -334,7 +348,7 @@ try {
         $file = $_FILES['image'];
         $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($errorCode !== UPLOAD_ERR_OK) {
-            jsonResponse(['message' => 'Profile image upload failed'], 422);
+            jsonResponse(['message' => fileUploadErrorMessage($errorCode, 'Profile image is required')], 422);
         }
         $tmpPath = (string) ($file['tmp_name'] ?? '');
         $originalName = (string) ($file['name'] ?? '');
@@ -744,7 +758,7 @@ try {
         $file = $_FILES['image'];
         $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($errorCode !== UPLOAD_ERR_OK) {
-            jsonResponse(['message' => 'Image upload failed'], 422);
+            jsonResponse(['message' => fileUploadErrorMessage($errorCode, 'Image file is required')], 422);
         }
 
         $tmpPath = (string) ($file['tmp_name'] ?? '');
