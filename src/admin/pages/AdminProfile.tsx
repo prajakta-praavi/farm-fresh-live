@@ -151,6 +151,7 @@ const AdminProfile = () => {
         <p className="text-xs text-slate-500">
           Last login: {profile?.last_login ? new Date(profile.last_login).toLocaleString() : "-"}
         </p>
+        <p className="text-xs text-slate-500">Role: Administrator</p>
       </div>
 
       <div className="rounded-xl border bg-white p-4 space-y-3">

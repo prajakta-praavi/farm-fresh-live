@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adminApi } from "@/admin/lib/api";
-import type { Attribute, AttributeTerm, Category, Product, ProductVariation } from "@/admin/types";
+import type { Attribute, AttributeTerm, Category, Product, ProductVariation, StockMovement } from "@/admin/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 type ProductForm = {
   id?: number;
   name: string;
+  sku: string;
   price: string;
   category_id: string;
   description: string;
@@ -33,6 +34,7 @@ type VariationRow = {
 
 const defaultForm: ProductForm = {
   name: "",
+  sku: "",
   price: "",
   category_id: "",
   description: "",
@@ -69,6 +71,7 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [termsByAttribute, setTermsByAttribute] = useState<Record<number, AttributeTerm[]>>({});
   const [variations, setVariations] = useState<VariationRow[]>([]);
   const [form, setForm] = useState<ProductForm>(defaultForm);
@@ -86,14 +89,16 @@ const AdminProducts = () => {
   };
 
   const load = async () => {
-    const [productsData, categoriesData, attributesData] = await Promise.all([
+    const [productsData, categoriesData, attributesData, stockMovementData] = await Promise.all([
       adminApi.getProducts(),
       adminApi.getCategories(),
       adminApi.getAttributes(),
+      adminApi.getStockMovements(),
     ]);
     setProducts(Array.isArray(productsData) ? productsData : []);
     setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     setAttributes(Array.isArray(attributesData) ? attributesData : []);
+    setStockMovements(Array.isArray(stockMovementData) ? stockMovementData : []);
   };
 
   useEffect(() => {
@@ -112,6 +117,7 @@ const AdminProducts = () => {
     try {
       const payload = {
         name: form.name,
+        sku: form.sku.trim() || null,
         price: Number(form.price || 0),
         category_id: Number(form.category_id),
         description: form.description,
@@ -160,6 +166,7 @@ const AdminProducts = () => {
     setForm({
       id: product.id,
       name: product.name,
+      sku: product.sku || "",
       price: String(product.price),
       category_id: String(product.category_id),
       description: product.description || "",
@@ -202,7 +209,7 @@ const AdminProducts = () => {
   };
 
   const onStockUpdate = async (id: number, stock_quantity: number) => {
-    await adminApi.updateStock(id, stock_quantity);
+    await adminApi.updateStock(id, Math.max(0, Number(stock_quantity || 0)));
     await load();
   };
 
@@ -267,6 +274,7 @@ const AdminProducts = () => {
         <h2 className="font-semibold">{isEdit ? "Edit Product" : "Add New Product"}</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <Input placeholder="Product name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+          <Input placeholder="SKU (optional)" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} />
           <Input
             placeholder="Base Price"
             type="number"
@@ -457,10 +465,12 @@ const AdminProducts = () => {
           <thead className="bg-slate-50 text-left">
             <tr>
               <th className="p-3">Name</th>
+              <th className="p-3">SKU</th>
               <th className="p-3">Category</th>
               <th className="p-3">Price</th>
               <th className="p-3">GST %</th>
               <th className="p-3">Stock</th>
+              <th className="p-3">Status</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
@@ -468,6 +478,7 @@ const AdminProducts = () => {
             {products.map((product) => (
               <tr key={product.id} className="border-t">
                 <td className="p-3">{product.name}</td>
+                <td className="p-3">{product.sku || "-"}</td>
                 <td className="p-3">{product.category_name}</td>
                 <td className="p-3">₹ {Number(product.price).toFixed(2)}</td>
                 <td className="p-3">{Number(product.gst_rate ?? 0).toFixed(2)}%</td>
@@ -480,6 +491,7 @@ const AdminProducts = () => {
                     className="h-8 w-24"
                   />
                 </td>
+                <td className="p-3">{product.product_status || (Number(product.stock_quantity) > 0 ? "Active" : "Out of Stock")}</td>
                 <td className="p-3 space-x-2">
                   <Button size="sm" onClick={() => onEdit(product)}>
                     Edit
@@ -490,6 +502,43 @@ const AdminProducts = () => {
                 </td>
               </tr>
             ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="rounded-xl border bg-white overflow-x-auto">
+        <div className="p-4 border-b">
+          <h2 className="font-semibold">Recent Stock Changes</h2>
+        </div>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left">
+            <tr>
+              <th className="p-3">Date</th>
+              <th className="p-3">Product</th>
+              <th className="p-3">Type</th>
+              <th className="p-3">Delta</th>
+              <th className="p-3">Previous</th>
+              <th className="p-3">New</th>
+              <th className="p-3">Order</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stockMovements.map((movement) => (
+              <tr key={movement.id} className="border-t">
+                <td className="p-3">{new Date(movement.created_at).toLocaleString()}</td>
+                <td className="p-3">{movement.product_name}</td>
+                <td className="p-3">{movement.movement_type}</td>
+                <td className="p-3">{movement.quantity_delta}</td>
+                <td className="p-3">{movement.previous_stock}</td>
+                <td className="p-3">{movement.new_stock}</td>
+                <td className="p-3">{movement.order_id ?? "-"}</td>
+              </tr>
+            ))}
+            {stockMovements.length === 0 ? (
+              <tr>
+                <td className="p-3 text-slate-500" colSpan={7}>No stock changes yet.</td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>

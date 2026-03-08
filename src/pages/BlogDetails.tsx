@@ -1,13 +1,37 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Clock, ArrowLeft } from "lucide-react";
 import Layout from "@/components/Layout";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import blogBreadcrumbImage from "@/assets/blog breadcrub.png";
-import { blogPosts } from "@/data/mockData";
+import { getPublicBlogBySlug, type PublicBlogPost } from "@/lib/public-api";
 
 const BlogDetails = () => {
   const { slug } = useParams();
-  const post = blogPosts.find((b) => b.slug === slug);
+  const [post, setPost] = useState<PublicBlogPost | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
+    getPublicBlogBySlug(slug)
+      .then((data) => setPost(data))
+      .finally(() => setLoading(false));
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="pt-24 pb-16">
+          <div className="container">
+            <p className="text-muted-foreground">Loading blog...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (!post) {
     return (
@@ -41,6 +65,7 @@ const BlogDetails = () => {
             <h1 className="mb-5 text-3xl md:text-4xl font-display font-bold text-foreground">
               {post.title}
             </h1>
+            <p className="mb-2 text-sm text-muted-foreground">By {post.author}</p>
             <img src={post.image} alt={post.title} className="mb-6 h-[320px] md:h-[520px] w-full object-cover" />
             <div className="mb-4 flex items-center gap-3 text-sm text-muted-foreground">
               <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
@@ -48,7 +73,7 @@ const BlogDetails = () => {
               </span>
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
-                {post.readTime}
+                {post.date || "Published recently"}
               </span>
             </div>
 

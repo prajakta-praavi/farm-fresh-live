@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar as CalendarIcon, Users, Bed, Star, Wifi, Coffee, Trees, Sun } from "lucide-react";
+import { Calendar as CalendarIcon, Users, Bed, Star, Wifi, Coffee, Trees, Sun, Utensils, Gamepad2, Building2, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -9,7 +9,7 @@ import farmStayImage from "@/assets/farm-stay.jpg";
 import farmStaySlide1 from "@/assets/farm stay-1.png";
 import farmStaySlide2 from "@/assets/farm stay-2.png";
 import farmStaySlide3 from "@/assets/farm stay-3.png";
-import { format } from "date-fns";
+import { differenceInCalendarDays, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -20,24 +20,87 @@ const amenities = [
   { icon: Sun, label: "Sunrise Yoga" },
   { icon: Star, label: "Stargazing" },
   { icon: Users, label: "Farm Activities" },
+  { icon: Utensils, label: "Shared Dining Area" },
+  { icon: Gamepad2, label: "Kids Play Zone" },
+  { icon: Building2, label: "Rooftop Scenic Views" },
+  { icon: Briefcase, label: "Meeting-Friendly Spaces" },
 ];
 
 const stayGallerySlides = [farmStaySlide1, farmStaySlide2, farmStaySlide3];
-const ROOM_BASE_RATE = 5000;
-const GST_RATE = 18;
+const TOTAL_ROOMS = 2;
+const ROOM_BASE_CAPACITY = 2;
+const ROOM_MAX_CAPACITY = 3;
+const ROOM_BASE_RATE = 3000;
+const EXTRA_BED_CHARGE = 1000;
+const MAX_PROPERTY_GUESTS = 15;
+const TENT_RATE_PER_GUEST = 1000;
+
+const getFarmStayGstRate = (nightlyTariff: number) => {
+  if (nightlyTariff < 1000) return 0;
+  if (nightlyTariff <= 7500) return 5;
+  return 18;
+};
+
+const getStayPricing = (guestCount: number) => {
+  const normalizedGuests = Math.max(1, Math.min(MAX_PROPERTY_GUESTS, Number(guestCount || 1)));
+  const roomCapacity = TOTAL_ROOMS * ROOM_MAX_CAPACITY;
+  const roomGuests = Math.min(normalizedGuests, roomCapacity);
+  const tentGuests = Math.max(0, normalizedGuests - roomCapacity);
+
+  const roomsAllocated =
+    roomGuests <= 0 ? 0 : roomGuests <= ROOM_MAX_CAPACITY ? 1 : TOTAL_ROOMS;
+  const extraBeds =
+    roomGuests <= ROOM_BASE_CAPACITY
+      ? 0
+      : roomGuests <= ROOM_MAX_CAPACITY
+        ? 1
+        : roomGuests - TOTAL_ROOMS * ROOM_BASE_CAPACITY;
+
+  const roomPrice = roomsAllocated * ROOM_BASE_RATE + extraBeds * EXTRA_BED_CHARGE;
+  const tentPrice = tentGuests * TENT_RATE_PER_GUEST;
+  const subtotalPerNight = roomPrice + tentPrice;
+  const gstRate = getFarmStayGstRate(subtotalPerNight);
+  const gstAmountPerNight = Math.round((subtotalPerNight * gstRate) / 100);
+  const totalPerNight = subtotalPerNight + gstAmountPerNight;
+  const accommodationType =
+    tentGuests > 0 ? "ROOM + TENT" : roomsAllocated > 0 ? "ROOM" : "TENT";
+
+  const availabilityMessage =
+    tentGuests > 0
+      ? "Rooms not available for selected guest count. Tent accommodation is available."
+      : "";
+
+  return {
+    guests: normalizedGuests,
+    roomsAllocated,
+    extraBeds,
+    roomGuests,
+    tentGuests,
+    roomPrice,
+    tentPrice,
+    subtotalPerNight,
+    gstRate,
+    gstAmountPerNight,
+    totalPerNight,
+    accommodationType,
+    availabilityMessage,
+  };
+};
 
 const Stay = () => {
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
-  const [rooms, setRooms] = useState(1);
   const [guests, setGuests] = useState(1);
   const [activeStaySlide, setActiveStaySlide] = useState(0);
   const navigate = useNavigate();
 
-  const maxGuests = rooms * 3;
-  const roomRate = ROOM_BASE_RATE * rooms;
-  const gstAmount = Math.round((roomRate * GST_RATE) / 100);
-  const totalPerNight = roomRate + gstAmount;
+  const maxGuests = MAX_PROPERTY_GUESTS;
+  const pricing = getStayPricing(guests);
+  const numberOfDays =
+    checkIn && checkOut ? Math.max(0, differenceInCalendarDays(checkOut, checkIn)) : 0;
+  const subtotalForStay = pricing.subtotalPerNight * numberOfDays;
+  const gstForStay = pricing.gstAmountPerNight * numberOfDays;
+  const totalForStay = pricing.totalPerNight * numberOfDays;
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -123,7 +186,7 @@ const Stay = () => {
                           <Bed className="h-4 w-4 text-primary" /> 1 Extra bed available
                         </li>
                         <li className="flex items-center gap-2">
-                          <Star className="h-4 w-4 text-primary" /> Private bathroom
+                          <Star className="h-4 w-4 text-primary" /> Attached Bathroom
                         </li>
                       </ul>
                     </div>
@@ -190,26 +253,13 @@ const Stay = () => {
                           mode="single"
                           selected={checkOut}
                           onSelect={setCheckOut}
-                          disabled={(date) => date < (checkIn || new Date())}
+                          disabled={(date) =>
+                            checkIn ? date <= checkIn : date < new Date()
+                          }
                           className="pointer-events-auto p-3"
                         />
                       </PopoverContent>
                     </Popover>
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium">Number of Rooms</label>
-                    <select
-                      value={rooms}
-                      onChange={(event) => setRooms(Number(event.target.value))}
-                      className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                    >
-                      {[1, 2].map((count) => (
-                        <option key={count} value={count}>
-                          {count}
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
                   <div>
@@ -231,38 +281,71 @@ const Stay = () => {
                 {checkIn && checkOut && (
                   <div className="mb-6 space-y-2 rounded-xl bg-muted p-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Room rate ({rooms})</span>
-                      <span>{"\u20B9"} {roomRate.toLocaleString()} / night</span>
+                      <span className="text-muted-foreground">Number of Days</span>
+                      <span>{numberOfDays}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">GST ({GST_RATE}%)</span>
-                      <span>{"\u20B9"} {gstAmount.toLocaleString()} / night</span>
+                      <span className="text-muted-foreground">
+                        Rooms ({pricing.roomsAllocated}) + Extra Beds ({pricing.extraBeds})
+                      </span>
+                      <span>{"\u20B9"} {pricing.roomPrice.toLocaleString()} / night</span>
+                    </div>
+                    {pricing.tentGuests > 0 ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tent Facility ({pricing.tentGuests} guests)</span>
+                        <span>{"\u20B9"} {pricing.tentPrice.toLocaleString()} / night</span>
+                      </div>
+                    ) : null}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Accommodation Type</span>
+                      <span>{pricing.accommodationType}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal / night</span>
+                      <span>{"\u20B9"} {pricing.subtotalPerNight.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">GST ({pricing.gstRate}%)</span>
+                      <span>{"\u20B9"} {pricing.gstAmountPerNight.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between border-t border-border pt-2 font-bold">
                       <span>Total / night</span>
-                      <span className="text-primary">{"\u20B9"} {totalPerNight.toLocaleString()}</span>
+                      <span className="text-primary">{"\u20B9"} {pricing.totalPerNight.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Subtotal ({numberOfDays} day{numberOfDays > 1 ? "s" : ""})</span>
+                      <span>{"\u20B9"} {subtotalForStay.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">GST ({numberOfDays} day{numberOfDays > 1 ? "s" : ""})</span>
+                      <span>{"\u20B9"} {gstForStay.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-2 font-bold">
+                      <span>Total Booking Price</span>
+                      <span className="text-primary">{"\u20B9"} {totalForStay.toLocaleString()}</span>
                     </div>
                   </div>
                 )}
 
+                {pricing.availabilityMessage ? (
+                  <p className="mb-4 text-xs font-medium text-amber-700">{pricing.availabilityMessage}</p>
+                ) : null}
+
                 <Button
                   className="h-12 w-full rounded-full text-base"
-                  disabled={!checkIn || !checkOut}
+                  disabled={!checkIn || !checkOut || numberOfDays <= 0}
                   onClick={() =>
                     navigate(
                       `/checkout/stay?checkIn=${format(checkIn as Date, "yyyy-MM-dd")}&checkOut=${format(
                         checkOut as Date,
                         "yyyy-MM-dd"
-                      )}&rooms=${rooms}&guests=${guests}`
+                      )}&days=${numberOfDays}&guests=${pricing.guests}&rooms=${pricing.roomsAllocated}&extraBeds=${pricing.extraBeds}&tentGuests=${pricing.tentGuests}&accommodationType=${encodeURIComponent(pricing.accommodationType)}&subtotalPerNight=${pricing.subtotalPerNight}&gstRate=${pricing.gstRate}&gstAmountPerNight=${pricing.gstAmountPerNight}&totalPerNight=${pricing.totalPerNight}`
                     )
                   }
                 >
                   Book Now
                 </Button>
 
-                <p className="mt-4 text-center text-xs text-muted-foreground">
-                  Only 2 rooms available. Book early to avoid disappointment!
-                </p>
               </div>
             </div>
           </div>

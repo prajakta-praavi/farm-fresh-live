@@ -65,7 +65,7 @@ const CorporateGifting = () => {
 
           <section className="mb-14">
             <h2 className="mb-6 text-center text-2xl font-display font-bold md:text-3xl">
-              Our Corporate Hamper Collection
+              Customised Corporate Gift Hampers
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[giftingVideo1, giftingVideo2, giftingVideo3, giftingVideo4].map((videoSrc, idx) => (

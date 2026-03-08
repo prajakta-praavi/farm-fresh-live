@@ -1,4 +1,5 @@
 import { products as mockProducts } from "@/data/mockData";
+import { blogPosts as mockBlogPosts } from "@/data/mockData";
 
 export interface PublicProductVariation {
   id: number;
@@ -38,6 +39,33 @@ const normalizeCategoryName = (category: string): string =>
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost/farm-fresh-dwell-main/backend";
+
+const PUBLIC_API_BASE_CANDIDATES =
+  typeof window !== "undefined"
+    ? Array.from(
+        new Set(
+          [
+            API_BASE_URL,
+            `${window.location.origin}/backend`,
+            `${window.location.origin}/farm-fresh/farm-fresh-live/backend`,
+            `${window.location.origin}/farm-fresh-live/backend`,
+            "http://localhost/backend",
+            "http://localhost/farm-fresh/farm-fresh-live/backend",
+            "http://localhost/farm-fresh-live/backend",
+            "https://api.rushivanagro.com",
+            "https://www.rushivanagro.com/backend",
+          ].filter(Boolean)
+        )
+      )
+    : [API_BASE_URL];
+
+const makeAbsoluteUrl = (baseUrl: string, value?: string | null): string => {
+  const path = (value || "").trim();
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("/")) return `${baseUrl}${path}`;
+  return `${baseUrl}/${path.replace(/^\/+/, "")}`;
+};
 
 interface ApiProduct {
   id: number | string;
@@ -136,7 +164,12 @@ const toMockProduct = (item: (typeof mockProducts)[number]): PublicProduct => ({
 const mockCatalog = mockProducts.map((item) => toMockProduct(item));
 
 export const getCachedPublicCatalog = (): PublicProduct[] => {
-  const raw = localStorage.getItem(PUBLIC_CATALOG_KEY);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(PUBLIC_CATALOG_KEY);
+  } catch {
+    return mockCatalog;
+  }
   if (!raw) return mockCatalog;
   try {
     const parsed = JSON.parse(raw) as PublicProduct[];
@@ -164,7 +197,11 @@ export const getPublicProducts = async (): Promise<PublicProduct[]> => {
       .map((item) => markDemoOutOfStock(normalizeProduct(item as ApiProduct)))
       .filter((item) => !isExcludedProduct(item));
     if (mapped.length > 0) {
-      localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify(mapped));
+      try {
+        localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify(mapped));
+      } catch {
+        // ignore storage failures
+      }
       return mapped;
     }
     return getCachedPublicCatalog();
@@ -185,9 +222,129 @@ export const getPublicProductById = async (id: number): Promise<PublicProduct | 
       return null;
     }
     const existing = getCachedPublicCatalog().filter((item) => item.id !== normalized.id);
-    localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify([normalized, ...existing]));
+    try {
+      localStorage.setItem(PUBLIC_CATALOG_KEY, JSON.stringify([normalized, ...existing]));
+    } catch {
+      // ignore storage failures
+    }
     return normalized;
   } catch {
     return getCachedPublicCatalog().find((item) => item.id === id) ?? null;
   }
+};
+
+export interface PublicBlogPost {
+  id: number;
+  slug: string;
+  title: string;
+  author: string;
+  excerpt: string;
+  image: string;
+  category: string;
+  date: string;
+  readTime: string;
+  content: string[];
+}
+
+interface ApiBlogPost {
+  id: number | string;
+  slug: string;
+  title: string;
+  author_name?: string | null;
+  excerpt?: string;
+  image_url?: string | null;
+  category?: string;
+  read_time?: string;
+  publish_at?: string | null;
+  created_at?: string;
+  content?: string;
+}
+
+const formatBlogDate = (value?: string): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+const normalizeBlogContent = (content?: string): string[] => {
+  const text = (content || "").trim();
+  if (!text) return [];
+  return text
+    .split(/\n\s*\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+};
+
+const normalizeApiBlog = (item: ApiBlogPost, baseUrl: string): PublicBlogPost => ({
+  id: Number(item.id),
+  slug: item.slug || "",
+  title: item.title || "",
+  author: (item.author_name || "").trim() || "Rushivan Aagro",
+  excerpt: item.excerpt || "",
+  image: makeAbsoluteUrl(baseUrl, item.image_url || ""),
+  category: item.category || "General",
+  date: formatBlogDate((item.publish_at || "").trim() || item.created_at) || "",
+  readTime: item.read_time || "5 min read",
+  content: normalizeBlogContent(item.content),
+});
+
+const mockBlogs: PublicBlogPost[] = mockBlogPosts.map((post) => ({
+  id: post.id,
+  slug: post.slug,
+  title: post.title,
+  author: "Rushivan Aagro",
+  excerpt: post.excerpt,
+  image: post.image,
+  category: post.category,
+  date: post.date,
+  readTime: post.readTime,
+  content: Array.isArray(post.content) ? post.content : [],
+}));
+
+export const getPublicBlogs = async (): Promise<PublicBlogPost[]> => {
+  for (const baseUrl of PUBLIC_API_BASE_CANDIDATES) {
+    try {
+      const response = await fetch(`${baseUrl}/api/public/blogs`);
+      const json = await response.json().catch(() => []);
+      if (!response.ok || !Array.isArray(json)) {
+        continue;
+      }
+      const mapped = json
+        .map((item) => normalizeApiBlog(item as ApiBlogPost, baseUrl))
+        .filter((item) => item.slug !== "" && item.title !== "");
+      if (mapped.length > 0) {
+        return mapped;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return mockBlogs;
+};
+
+export const getPublicBlogBySlug = async (slug: string): Promise<PublicBlogPost | null> => {
+  const cleanSlug = (slug || "").trim();
+  if (!cleanSlug) return null;
+
+  for (const baseUrl of PUBLIC_API_BASE_CANDIDATES) {
+    try {
+      const response = await fetch(`${baseUrl}/api/public/blogs/${encodeURIComponent(cleanSlug)}`);
+      const json = await response.json().catch(() => null);
+      if (!response.ok || !json) {
+        continue;
+      }
+      return normalizeApiBlog(json as ApiBlogPost, baseUrl);
+    } catch {
+      continue;
+    }
+  }
+
+  return mockBlogs.find((item) => item.slug === cleanSlug) || null;
 };

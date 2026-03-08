@@ -24,6 +24,9 @@ import AdminFarmStay from "@/admin/pages/AdminFarmStay";
 import AdminAttributes from "@/admin/pages/AdminAttributes";
 import AdminCustomers from "@/admin/pages/AdminCustomers";
 import AdminProfile from "@/admin/pages/AdminProfile";
+import AdminUsersAll from "@/admin/pages/AdminUsersAll";
+import AdminUsersAdd from "@/admin/pages/AdminUsersAdd";
+import AdminBlogs from "@/admin/pages/AdminBlogs";
 import AdminLayout from "@/admin/components/AdminLayout";
 import AdminProtectedRoute from "@/admin/components/AdminProtectedRoute";
 import CustomerLogin from "@/pages/CustomerLogin";
@@ -76,7 +79,11 @@ const App = () => (
               <Route path="orders" element={<AdminOrders />} />
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="attributes" element={<AdminAttributes />} />
+              <Route path="blogs" element={<AdminBlogs />} />
               <Route path="profile" element={<AdminProfile />} />
+              <Route path="users" element={<AdminUsersAll />} />
+              <Route path="users/add" element={<AdminUsersAdd />} />
+              <Route path="users/profile" element={<AdminProfile />} />
               <Route path="farm-stay" element={<AdminFarmStay />} />
             </Route>
           </Route>

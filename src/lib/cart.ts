@@ -37,11 +37,19 @@ const emitCartUpdated = () => {
 };
 
 export const getCartItems = (): CartItem[] => {
-  return safeParse(localStorage.getItem(CART_STORAGE_KEY));
+  try {
+    return safeParse(localStorage.getItem(CART_STORAGE_KEY));
+  } catch {
+    return [];
+  }
 };
 
 export const setCartItems = (items: CartItem[]) => {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // ignore storage failures
+  }
   emitCartUpdated();
 };
 

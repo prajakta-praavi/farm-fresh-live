@@ -12,8 +12,14 @@ const navItems = [
   { to: "/admin/orders", label: "Orders" },
   { to: "/admin/customers", label: "Customers" },
   { to: "/admin/attributes", label: "Attributes" },
-  { to: "/admin/profile", label: "Profile" },
+  { to: "/admin/blogs", label: "Blogs" },
   { to: "/admin/farm-stay", label: "Farm Stay" },
+];
+
+const userNavItems = [
+  { to: "/admin/users", label: "All Users" },
+  { to: "/admin/users/add", label: "Add User" },
+  { to: "/admin/users/profile", label: "Profile" },
 ];
 
 const AdminLayout = () => {
@@ -65,6 +71,26 @@ const AdminLayout = () => {
                 {item.label}
               </NavLink>
             ))}
+
+            <div className="pt-2">
+              <p className="px-3 py-2 text-sm font-semibold text-slate-800">Users</p>
+              <div className="space-y-1 pl-3">
+                {userNavItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "block rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        isActive ? "bg-emerald-600 text-white" : "text-slate-700 hover:bg-slate-100"
+                      )
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           </nav>
           <Button onClick={onLogout} className="mt-6 w-full bg-slate-800 hover:bg-slate-900">
             Logout

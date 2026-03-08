@@ -29,10 +29,12 @@ CREATE TABLE IF NOT EXISTS products (
   id INT AUTO_INCREMENT PRIMARY KEY,
   category_id INT NOT NULL,
   name VARCHAR(180) NOT NULL,
+  sku VARCHAR(80) DEFAULT NULL,
   description TEXT,
   image_url VARCHAR(255) DEFAULT '',
   price DECIMAL(10,2) NOT NULL DEFAULT 0,
   stock_quantity INT NOT NULL DEFAULT 0,
+  product_status ENUM('Active','Out of Stock') NOT NULL DEFAULT 'Active',
   unit VARCHAR(50) DEFAULT '',
   hsn_code VARCHAR(40) DEFAULT '',
   gst_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
@@ -86,12 +88,14 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_address TEXT NOT NULL,
   customer_pincode VARCHAR(12) NOT NULL,
   total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
-  order_status ENUM('Pending','Confirmed','Shipped','Delivered','Cancelled') NOT NULL DEFAULT 'Pending',
+  order_status ENUM('Pending','Confirmed','Processing','Ready to Ship','Shipped','Delivered','Cancelled') NOT NULL DEFAULT 'Pending',
   payment_status ENUM('Pending','Paid','Failed','Refunded') NOT NULL DEFAULT 'Pending',
   razorpay_order_id VARCHAR(120) DEFAULT NULL,
   razorpay_payment_id VARCHAR(120) DEFAULT NULL,
   razorpay_signature VARCHAR(255) DEFAULT NULL,
   invoice_id VARCHAR(40) DEFAULT NULL,
+  tracking_number VARCHAR(120) DEFAULT NULL,
+  tracking_url VARCHAR(255) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
@@ -116,6 +120,85 @@ CREATE TABLE IF NOT EXISTS order_items (
   CONSTRAINT fk_order_items_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
   CONSTRAINT fk_order_items_variation FOREIGN KEY (variation_id) REFERENCES product_variations(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS stock_movements (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  variation_id INT NULL,
+  order_id INT NULL,
+  movement_type ENUM('order_deduction','admin_adjustment','restock') NOT NULL,
+  quantity_delta INT NOT NULL,
+  previous_stock INT NOT NULL,
+  new_stock INT NOT NULL,
+  note VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_stock_movements_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_stock_movements_variation FOREIGN KEY (variation_id) REFERENCES product_variations(id) ON DELETE SET NULL,
+  CONSTRAINT fk_stock_movements_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS farm_stay_settings (
+  id TINYINT PRIMARY KEY DEFAULT 1,
+  total_property_capacity INT NOT NULL DEFAULT 15,
+  total_rooms INT NOT NULL DEFAULT 2,
+  room_base_capacity INT NOT NULL DEFAULT 2,
+  room_max_capacity INT NOT NULL DEFAULT 3,
+  room_price_per_night DECIMAL(10,2) NOT NULL DEFAULT 3000,
+  extra_bed_charge DECIMAL(10,2) NOT NULL DEFAULT 1000,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS farm_stay_units (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  unit_type ENUM('ROOM','TENT') NOT NULL,
+  unit_name VARCHAR(120) NOT NULL,
+  capacity INT NOT NULL,
+  price_per_night DECIMAL(10,2) NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS farm_stay_bookings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  full_name VARCHAR(120) NOT NULL,
+  phone VARCHAR(20) NOT NULL,
+  email VARCHAR(190) DEFAULT '',
+  check_in_date DATE NOT NULL,
+  check_out_date DATE NOT NULL,
+  guest_count INT NOT NULL,
+  accommodation_type ENUM('ROOM','TENT') NOT NULL,
+  rooms_allocated INT NOT NULL DEFAULT 0,
+  extra_beds INT NOT NULL DEFAULT 0,
+  subtotal_per_night DECIMAL(10,2) NOT NULL DEFAULT 0,
+  gst_rate DECIMAL(5,2) NOT NULL DEFAULT 0,
+  gst_amount_per_night DECIMAL(10,2) NOT NULL DEFAULT 0,
+  total_gst DECIMAL(10,2) NOT NULL DEFAULT 0,
+  total_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  notes TEXT,
+  status ENUM('Pending','Confirmed','Completed','Cancelled') NOT NULL DEFAULT 'Pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS farm_stay_booking_units (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  booking_id INT NOT NULL,
+  unit_id INT NOT NULL,
+  guests_allocated INT NOT NULL DEFAULT 0,
+  unit_price_per_night DECIMAL(10,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_farm_booking_units_booking FOREIGN KEY (booking_id) REFERENCES farm_stay_bookings(id) ON DELETE CASCADE,
+  CONSTRAINT fk_farm_booking_units_unit FOREIGN KEY (unit_id) REFERENCES farm_stay_units(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS farm_stay_blocked_dates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  blocked_date DATE NOT NULL UNIQUE,
+  reason VARCHAR(255) DEFAULT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS farm_stay_inquiries (

@@ -169,27 +169,39 @@ const Checkout = () => {
     if (target === "stay") {
       const checkIn = searchParams.get("checkIn");
       const checkOut = searchParams.get("checkOut");
-      const rooms = Math.max(1, Math.min(2, Number(searchParams.get("rooms") || 1)));
-      const maxGuests = rooms * 3;
-      const guests = Math.max(1, Math.min(maxGuests, Number(searchParams.get("guests") || 1)));
-      const roomRate = 5000 * rooms;
-      const gstAmount = Math.round((roomRate * 18) / 100);
-      const totalAmount = roomRate + gstAmount;
+      const days = Math.max(1, Number(searchParams.get("days") || 1));
+      const rooms = Math.max(0, Math.min(2, Number(searchParams.get("rooms") || 0)));
+      const guests = Math.max(1, Math.min(15, Number(searchParams.get("guests") || 1)));
+      const extraBeds = Math.max(0, Number(searchParams.get("extraBeds") || 0));
+      const tentGuests = Math.max(0, Number(searchParams.get("tentGuests") || 0));
+      const accommodationType = decodeURIComponent(searchParams.get("accommodationType") || "ROOM");
+      const subtotalPerNight = Math.max(0, Number(searchParams.get("subtotalPerNight") || 0));
+      const gstRate = Math.max(0, Number(searchParams.get("gstRate") || 0));
+      const gstAmountPerNight = Math.max(0, Number(searchParams.get("gstAmountPerNight") || 0));
+      const totalPerNight = Math.max(0, Number(searchParams.get("totalPerNight") || 0));
+      const roomAmount = rooms * 3000 + extraBeds * 1000;
+      const tentAmount = tentGuests * 1000;
+      const computedSubtotal = subtotalPerNight > 0 ? subtotalPerNight : roomAmount + tentAmount;
+      const computedGst = gstAmountPerNight > 0 ? gstAmountPerNight : (computedSubtotal * gstRate) / 100;
+      const computedPerNight = totalPerNight > 0 ? totalPerNight : computedSubtotal + computedGst;
+      const totalSubtotal = computedSubtotal * days;
+      const totalGst = computedGst * days;
+      const totalAmount = computedPerNight * days;
       const stayLabel =
         checkIn && checkOut ? `Farm Stay (${checkIn} to ${checkOut})` : "Farm Stay";
       return {
         title: "Farm Stay Checkout",
-        productName: `${stayLabel} - ${rooms} room(s), ${guests} guest(s)`,
-        subtotal: roomRate,
-        gstAmount,
+        productName: `${stayLabel} - ${guests} guest(s), ${accommodationType}, ${days} day${days > 1 ? "s" : ""}`,
+        subtotal: totalSubtotal,
+        gstAmount: totalGst,
         totalAmount,
         backTo: "/stay",
         orderItems: [
           {
-            product_name: `${stayLabel} - ${rooms} room(s), ${guests} guest(s)`,
-            quantity: rooms,
-            unit_price: 5000,
-            gst_rate: 18,
+            product_name: `${stayLabel} - ${guests} guest(s), Rooms: ${rooms}, Extra Beds: ${extraBeds}, Tent Guests: ${tentGuests}, Type: ${accommodationType}, Days: ${days}`,
+            quantity: days,
+            unit_price: computedPerNight,
+            gst_rate: gstRate,
           },
         ] as CheckoutOrderItem[],
       };
@@ -383,7 +395,7 @@ const Checkout = () => {
         },
       });
 
-      await fetch(`${resolvedApiBaseUrl}/api/orders`, {
+      const orderResponse = await fetch(`${resolvedApiBaseUrl}/api/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -403,8 +415,17 @@ const Checkout = () => {
           items: checkoutData.orderItems,
         }),
       });
+      const orderResult = await orderResponse.json().catch(() => ({} as { message?: string }));
+      if (!orderResponse.ok) {
+        throw new Error(orderResult.message || "Unable to place order.");
+      }
 
-      alert("Payment successful.");
+      const placedOrderId = (orderResult as { id?: number; invoice_id?: string }).id;
+      alert(
+        `Payment Successful!\nThank you for your purchase. Your order has been placed successfully.\nOrder ID: #${
+          placedOrderId || invoiceId
+        }`
+      );
       if (target === "cart") {
         clearCart();
       }

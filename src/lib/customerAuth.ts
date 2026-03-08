@@ -10,7 +10,12 @@ export interface CustomerSessionUser {
 const CUSTOMER_USER_KEY = "rushivan_customer_user";
 
 export const getCustomerUser = (): CustomerSessionUser | null => {
-  const raw = localStorage.getItem(CUSTOMER_USER_KEY);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(CUSTOMER_USER_KEY);
+  } catch {
+    return null;
+  }
   if (!raw) return null;
   try {
     return JSON.parse(raw) as CustomerSessionUser;
@@ -20,10 +25,18 @@ export const getCustomerUser = (): CustomerSessionUser | null => {
 };
 
 export const setCustomerUser = (user: CustomerSessionUser) => {
-  localStorage.setItem(CUSTOMER_USER_KEY, JSON.stringify(user));
+  try {
+    localStorage.setItem(CUSTOMER_USER_KEY, JSON.stringify(user));
+  } catch {
+    // ignore storage failures
+  }
 };
 
 export const clearCustomerUser = () => {
-  localStorage.removeItem(CUSTOMER_USER_KEY);
+  try {
+    localStorage.removeItem(CUSTOMER_USER_KEY);
+  } catch {
+    // ignore storage failures
+  }
 };
 

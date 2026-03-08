@@ -103,7 +103,14 @@ const ProductDetails = () => {
   return (
     <Layout>
       <div className="pt-28 pb-16">
-        <PageBreadcrumb image={shopBreadcrumbImage} alt={`${product.name} banner`} />
+        <PageBreadcrumb
+          image={shopBreadcrumbImage}
+          alt="Shop banner"
+          title="EXPLORE OUR SHOP"
+          align="center"
+          titleClassName="text-[#4a1f00]"
+          overlayClassName="items-center"
+        />
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <img src={product.image} alt={product.name} className="w-full rounded-xl border border-border object-cover" />

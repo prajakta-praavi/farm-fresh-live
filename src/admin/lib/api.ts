@@ -2,25 +2,40 @@ import type {
   AdminProfile,
   Attribute,
   AttributeTerm,
+  BlogCategory,
+  BlogPost,
   Category,
   CustomerRecord,
   DashboardOverview,
   FarmStayInquiry,
+  ManagedUser,
   Order,
+  PaginatedUsers,
   Product,
+  StockMovement,
   ProductVariation,
+  UserRole,
 } from "@/admin/types";
 import { clearAdminSession, getAdminToken } from "@/admin/lib/auth";
 
 const CONFIGURED_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 const FALLBACK_API_BASE_URLS =
   typeof window !== "undefined"
-    ? [`${window.location.origin}/backend`, "https://api.rushivanagro.com", "https://www.rushivanagro.com/backend"]
+    ? [
+        `${window.location.origin}/backend`,
+        `${window.location.origin}/farm-fresh/farm-fresh-live/backend`,
+        `${window.location.origin}/farm-fresh/backend`,
+        "http://localhost/farm-fresh/farm-fresh-live/backend",
+        "http://localhost/farm-fresh/backend",
+        "https://api.rushivanagro.com",
+        "https://www.rushivanagro.com/backend",
+      ]
     : [];
 const API_BASE_CANDIDATES = Array.from(
   new Set([CONFIGURED_API_BASE_URL, ...FALLBACK_API_BASE_URLS].filter(Boolean))
 );
 const buildUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
+const NON_RETRYABLE_ERROR = "NON_RETRYABLE_HTTP_ERROR";
 
 function handleUnauthorized(response: Response): void {
   if (response.status !== 401) return;
@@ -63,9 +78,14 @@ async function request<T>(path: string, init?: RequestInit, withAuth = true): Pr
       if (!isLastCandidate && isRouteNotFound(response, json)) {
         continue;
       }
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      (error as Error & { code?: string }).code = NON_RETRYABLE_ERROR;
+      throw error;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error("Failed to fetch");
+      if ((lastError as Error & { code?: string }).code === NON_RETRYABLE_ERROR) {
+        throw lastError;
+      }
       const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
       if (!isLastCandidate) {
         continue;
@@ -101,9 +121,14 @@ async function uploadRequest<T>(path: string, formData: FormData, defaultMessage
       if (!isLastCandidate && isRouteNotFound(response, json)) {
         continue;
       }
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      (error as Error & { code?: string }).code = NON_RETRYABLE_ERROR;
+      throw error;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(defaultMessage);
+      if ((lastError as Error & { code?: string }).code === NON_RETRYABLE_ERROR) {
+        throw lastError;
+      }
       const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
       if (!isLastCandidate) {
         continue;
@@ -155,6 +180,17 @@ export const adminApi = {
       method: "PUT",
       body: JSON.stringify({ variations }),
     }),
+  getStockMovements: async () => {
+    try {
+      return await request<StockMovement[]>("/api/stock-movements");
+    } catch (error) {
+      const message = String((error as Error)?.message || "").toLowerCase();
+      if (message.includes("route not found") || message.includes("not found")) {
+        return [];
+      }
+      throw error;
+    }
+  },
 
   getAttributes: () => request<Attribute[]>("/api/attributes"),
   addAttribute: (name: string) =>
@@ -190,10 +226,17 @@ export const adminApi = {
 
   getOrders: () => request<Order[]>("/api/orders"),
   getOrder: (id: number) => request<Order>(`/api/orders/${id}`),
-  updateOrderStatus: (id: number, order_status: Order["order_status"]) =>
+  updateOrderStatus: (
+    id: number,
+    order_status: Order["order_status"],
+    tracking?: { tracking_number?: string; tracking_url?: string }
+  ) =>
     request<Order>(`/api/orders/${id}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ order_status }),
+      body: JSON.stringify({
+        order_status,
+        ...(tracking || {}),
+      }),
     }),
 
   getFarmStayInquiries: () => request<FarmStayInquiry[]>("/api/farm-stay-inquiries"),
@@ -213,4 +256,86 @@ export const adminApi = {
     request<CustomerRecord[]>(`/api/admin/customers${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`),
   deleteCustomer: (id: number) => request<{ success: boolean }>(`/api/admin/customers/${id}`, { method: "DELETE" }),
   getCustomerOrders: (id: number) => request<Order[]>(`/api/admin/customers/${id}/orders`),
+
+  getUsers: async (params: { search?: string; role?: UserRole | ""; page?: number; per_page?: number } = {}) => {
+    const query = new URLSearchParams();
+    if (params.search?.trim()) query.set("search", params.search.trim());
+    if (params.role?.trim()) query.set("role", params.role.trim());
+    if (params.page) query.set("page", String(params.page));
+    if (params.per_page) query.set("per_page", String(params.per_page));
+    const path = `/api/admin/users${query.toString() ? `?${query.toString()}` : ""}`;
+    try {
+      return await request<PaginatedUsers>(path);
+    } catch (error) {
+      const message = String((error as Error)?.message || "").toLowerCase();
+      if (message.includes("route not found") || message.includes("not found")) {
+        return {
+          items: [],
+          pagination: {
+            page: params.page || 1,
+            per_page: params.per_page || 10,
+            total: 0,
+            total_pages: 1,
+          },
+        };
+      }
+      throw error;
+    }
+  },
+  addUser: (payload: { username: string; email: string; password: string; role: UserRole }) =>
+    request<ManagedUser>("/api/admin/users", { method: "POST", body: JSON.stringify(payload) }),
+  updateUser: (id: number, payload: { username: string; email: string; role: UserRole; password?: string }) =>
+    request<ManagedUser>(`/api/admin/users/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteUser: (id: number) => request<{ success: boolean }>(`/api/admin/users/${id}`, { method: "DELETE" }),
+
+  getBlogs: async () => {
+    try {
+      return await request<BlogPost[]>("/api/blogs");
+    } catch (error) {
+      const message = String((error as Error)?.message || "").toLowerCase();
+      if (message.includes("route not found") || message.includes("not found")) {
+        return [];
+      }
+      throw error;
+    }
+  },
+  addBlog: (payload: {
+    title: string;
+    author_name: string;
+    excerpt: string;
+    content: string;
+    image_url: string;
+    category: string;
+    is_published: number;
+    publish_at: string | null;
+  }) => request<BlogPost>("/api/blogs", { method: "POST", body: JSON.stringify(payload) }),
+  updateBlog: (
+    id: number,
+    payload: {
+      title: string;
+      author_name: string;
+      excerpt: string;
+      content: string;
+      image_url: string;
+      category: string;
+      is_published: number;
+      publish_at: string | null;
+    }
+  ) => request<BlogPost>(`/api/blogs/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteBlog: (id: number) => request<{ success: boolean }>(`/api/blogs/${id}`, { method: "DELETE" }),
+
+  getBlogCategories: async () => {
+    try {
+      return await request<BlogCategory[]>("/api/blog-categories");
+    } catch (error) {
+      const message = String((error as Error)?.message || "").toLowerCase();
+      if (message.includes("route not found") || message.includes("not found")) {
+        return [];
+      }
+      throw error;
+    }
+  },
+  addBlogCategory: (name: string) =>
+    request<BlogCategory>("/api/blog-categories", { method: "POST", body: JSON.stringify({ name }) }),
+  deleteBlogCategory: (id: number) => request<{ success: boolean }>(`/api/blog-categories/${id}`, { method: "DELETE" }),
 };

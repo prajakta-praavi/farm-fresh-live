@@ -12,22 +12,41 @@ export interface AdminUser {
   role: "admin";
 }
 
-export const getAdminToken = () => localStorage.getItem(ADMIN_TOKEN_KEY);
+export const getAdminToken = () => {
+  try {
+    return localStorage.getItem(ADMIN_TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
 
 export const setAdminSession = (token: string, user: AdminUser) => {
-  localStorage.setItem(ADMIN_TOKEN_KEY, token);
-  localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
+  try {
+    localStorage.setItem(ADMIN_TOKEN_KEY, token);
+    localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
+  } catch {
+    // ignore storage failures
+  }
   window.dispatchEvent(new Event(ADMIN_SESSION_EVENT));
 };
 
 export const clearAdminSession = () => {
-  localStorage.removeItem(ADMIN_TOKEN_KEY);
-  localStorage.removeItem(ADMIN_USER_KEY);
+  try {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_USER_KEY);
+  } catch {
+    // ignore storage failures
+  }
   window.dispatchEvent(new Event(ADMIN_SESSION_EVENT));
 };
 
 export const getAdminUser = (): AdminUser | null => {
-  const raw = localStorage.getItem(ADMIN_USER_KEY);
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(ADMIN_USER_KEY);
+  } catch {
+    return null;
+  }
   if (!raw) return null;
   try {
     return JSON.parse(raw) as AdminUser;

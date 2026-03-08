@@ -1,12 +1,24 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "@/admin/lib/api";
 import type { Order } from "@/admin/types";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
-const ORDER_STATUS_OPTIONS: Order["order_status"][] = ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+const ORDER_STATUS_OPTIONS: Order["order_status"][] = [
+  "Pending",
+  "Confirmed",
+  "Processing",
+  "Ready to Ship",
+  "Shipped",
+  "Delivered",
+  "Cancelled",
+];
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
   const [error, setError] = useState("");
 
   const load = async () => {
@@ -24,12 +36,29 @@ const AdminOrders = () => {
     if (selectedOrder?.id === id) {
       const fullOrder = await adminApi.getOrder(id);
       setSelectedOrder(fullOrder);
+      setTrackingNumber(fullOrder.tracking_number || "");
+      setTrackingUrl(fullOrder.tracking_url || "");
     }
   };
 
   const onViewDetails = async (id: number) => {
     const fullOrder = await adminApi.getOrder(id);
     setSelectedOrder(fullOrder);
+    setTrackingNumber(fullOrder.tracking_number || "");
+    setTrackingUrl(fullOrder.tracking_url || "");
+  };
+
+  const onSaveTracking = async () => {
+    if (!selectedOrder) return;
+    await adminApi.updateOrderStatus(selectedOrder.id, selectedOrder.order_status, {
+      tracking_number: trackingNumber.trim(),
+      tracking_url: trackingUrl.trim(),
+    });
+    const fullOrder = await adminApi.getOrder(selectedOrder.id);
+    setSelectedOrder(fullOrder);
+    setTrackingNumber(fullOrder.tracking_number || "");
+    setTrackingUrl(fullOrder.tracking_url || "");
+    await load();
   };
 
   return (
@@ -105,6 +134,22 @@ const AdminOrders = () => {
               <p>
                 <span className="font-semibold">Razorpay Payment ID:</span> {selectedOrder.razorpay_payment_id || "-"}
               </p>
+              <div className="pt-2 space-y-2">
+                <p className="font-semibold">Tracking Details</p>
+                <Input
+                  value={trackingNumber}
+                  onChange={(event) => setTrackingNumber(event.target.value)}
+                  placeholder="Tracking number"
+                />
+                <Input
+                  value={trackingUrl}
+                  onChange={(event) => setTrackingUrl(event.target.value)}
+                  placeholder="Tracking URL"
+                />
+                <Button type="button" size="sm" onClick={onSaveTracking}>
+                  Save Tracking
+                </Button>
+              </div>
               <div className="pt-2">
                 <p className="font-semibold mb-1">Products</p>
                 <ul className="space-y-1">
