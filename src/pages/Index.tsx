@@ -306,7 +306,7 @@ const Index = () => {
       <section className="bg-white py-10 md:py-14">
         <div className="container">
           <div className="mb-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            <h2 className="text-[clamp(1.9rem,8vw,2.25rem)] md:text-4xl font-display font-bold text-foreground whitespace-nowrap">
               Welcome to Rushivan Aagro
             </h2>
           </div>
@@ -549,20 +549,13 @@ const Index = () => {
                   className="w-full shrink-0 px-3"
                   style={{ width: `${100 / visibleTestimonials}%` }}
                 >
-                  <div className="bg-card p-5 md:p-6 rounded-2xl border border-border h-[240px] sm:h-[260px] lg:h-[280px] flex flex-col">
+                  <div className="bg-card p-5 md:p-6 rounded-2xl border border-border h-auto sm:h-[260px] lg:h-[280px] flex flex-col">
                     <div className="flex gap-1 mb-4">
                       {Array.from({ length: t.rating }).map((_, j) => (
                         <Star key={j} className="w-4 h-4 fill-gold text-gold" />
                       ))}
                     </div>
-                    <p
-                      className="text-foreground/80 text-sm leading-relaxed mb-4 font-serif italic flex-1 overflow-hidden"
-                      style={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 6,
-                        WebkitBoxOrient: "vertical",
-                      }}
-                    >
+                    <p className="text-foreground/80 text-sm leading-relaxed mb-4 font-serif italic sm:flex-1 sm:overflow-hidden sm:[display:-webkit-box] sm:[-webkit-line-clamp:6] sm:[-webkit-box-orient:vertical]">
                       "{t.text}"
                     </p>
                     <div>

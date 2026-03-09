@@ -160,7 +160,7 @@ const Stay = () => {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                 <h2 className="mb-4 text-2xl font-display font-bold">About Our Farm Stay</h2>
                 <p className="mb-4 leading-relaxed text-muted-foreground">
-                  Nestled in the heart of Gujarat&apos;s lush farmlands, Rushivan Aagro Farm Stay offers a unique
+                  Nestled in the heart of Mahabaleshwar lush farmlands, Rushivan Aagro Farm Stay offers a unique
                   escape from urban life. Wake up to the sounds of nature, enjoy freshly prepared
                   organic meals, and participate in authentic farm activities like milking cows,
                   harvesting vegetables, and making traditional dairy products.
