@@ -5,6 +5,10 @@
 2. Create MySQL database and import `schema.sql`.
 3. Point Apache/Nginx to `backend/` (or keep under project URL with rewrite enabled).
 4. Ensure PHP PDO MySQL extension is enabled.
+5. Ensure upload directory is writable by PHP user:
+   - Default: `backend/uploads`
+   - Optional custom path via `.env`: `UPLOAD_DIR=/absolute/path/to/writable/uploads`
+   - Optional public base URL via `.env`: `UPLOAD_PUBLIC_BASE_URL=https://your-domain.com/backend`
 
 ## First Admin Login
 - Admin user is auto-created from `.env`:
@@ -18,4 +22,3 @@
 ## Security
 - Keep `RAZORPAY_KEY_SECRET` only in backend `.env`.
 - Do not store secret key in frontend.
-

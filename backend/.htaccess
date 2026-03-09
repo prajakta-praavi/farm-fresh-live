@@ -1,5 +1,8 @@
 RewriteEngine On
+
+# Ensure all API requests (including OPTIONS preflight) hit PHP router.
+RewriteRule ^api(/.*)?$ index.php [QSA,L]
+
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
-

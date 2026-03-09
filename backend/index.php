@@ -40,6 +40,55 @@ function fileUploadErrorMessage(int $errorCode, string $missingFileMessage = 'Im
     };
 }
 
+function uploadBaseDirectory(): string
+{
+    $configured = trim((string) env('UPLOAD_DIR', ''));
+    if ($configured !== '') {
+        return rtrim($configured, '/\\');
+    }
+    return __DIR__ . '/uploads';
+}
+
+function ensureDirectoryWritable(string $directory): void
+{
+    if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+        jsonResponse(['message' => 'Failed to create upload directory: ' . $directory], 500);
+    }
+    if (!is_writable($directory)) {
+        jsonResponse(['message' => 'Upload directory is not writable: ' . $directory], 500);
+    }
+}
+
+function apiOriginFromRequest(): string
+{
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    if ($host === '') {
+        return '';
+    }
+    $scriptName = (string) ($_SERVER['SCRIPT_NAME'] ?? '');
+    $basePath = rtrim(str_replace('\\', '/', dirname($scriptName)), '/.');
+    return $scheme . '://' . $host . ($basePath !== '' ? $basePath : '');
+}
+
+function buildUploadUrl(string $relativePath): string
+{
+    $relativePath = '/' . ltrim($relativePath, '/');
+    $publicBase = rtrim((string) env('UPLOAD_PUBLIC_BASE_URL', ''), '/');
+    if ($publicBase !== '') {
+        return $publicBase . $relativePath;
+    }
+    $appUrl = rtrim((string) env('APP_URL', ''), '/');
+    if ($appUrl !== '') {
+        return $appUrl . $relativePath;
+    }
+    $requestBase = rtrim(apiOriginFromRequest(), '/');
+    if ($requestBase !== '') {
+        return $requestBase . $relativePath;
+    }
+    return $relativePath;
+}
+
 function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $items): void
 {
     $ownerEmail = trim((string) env('ORDER_NOTIFICATION_EMAIL', 'rushivanagro@gmail.com'));
@@ -503,19 +552,18 @@ try {
         if (!in_array($extension, $allowed, true)) {
             jsonResponse(['message' => 'Only jpg, jpeg, png, webp files are allowed'], 422);
         }
-        $uploadDir = __DIR__ . '/uploads/admins';
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true) && !is_dir($uploadDir)) {
-            jsonResponse(['message' => 'Failed to create upload directory'], 500);
-        }
+        $uploadDir = uploadBaseDirectory() . '/admins';
+        ensureDirectoryWritable($uploadDir);
         $filename = 'admin_' . (int) $auth['id'] . '_' . time() . '_' . bin2hex(random_bytes(3)) . '.' . $extension;
         $targetPath = $uploadDir . '/' . $filename;
         if (!move_uploaded_file($tmpPath, $targetPath)) {
             jsonResponse(['message' => 'Failed to store uploaded image'], 500);
         }
         $relativePath = '/uploads/admins/' . $filename;
+        $profileImageUrl = buildUploadUrl($relativePath);
         $stmt = $pdo->prepare('UPDATE admins SET profile_image = ? WHERE id = ?');
-        $stmt->execute([$relativePath, (int) $auth['id']]);
-        jsonResponse(['profile_image' => $relativePath]);
+        $stmt->execute([$profileImageUrl, (int) $auth['id']]);
+        jsonResponse(['profile_image' => $profileImageUrl]);
     }
 
     if ($path === '/api/customer/register' && $method === 'POST') {
@@ -929,10 +977,8 @@ try {
             jsonResponse(['message' => 'Only jpg, jpeg, png, webp files are allowed'], 422);
         }
 
-        $uploadDir = __DIR__ . '/uploads';
-        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0777, true) && !is_dir($uploadDir)) {
-            jsonResponse(['message' => 'Failed to create upload directory'], 500);
-        }
+        $uploadDir = uploadBaseDirectory();
+        ensureDirectoryWritable($uploadDir);
 
         $filename = 'product_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
         $targetPath = $uploadDir . '/' . $filename;
@@ -940,8 +986,7 @@ try {
             jsonResponse(['message' => 'Failed to store uploaded image'], 500);
         }
 
-        $baseUrl = rtrim((string) env('APP_URL', ''), '/');
-        $imageUrl = $baseUrl !== '' ? ($baseUrl . '/uploads/' . $filename) : ('/uploads/' . $filename);
+        $imageUrl = buildUploadUrl('/uploads/' . $filename);
         jsonResponse(['image_url' => $imageUrl], 201);
     }
 

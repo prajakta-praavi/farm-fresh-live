@@ -37,6 +37,26 @@ const API_BASE_CANDIDATES = Array.from(
 const buildUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
 const NON_RETRYABLE_ERROR = "NON_RETRYABLE_HTTP_ERROR";
 
+async function parseJsonResponse(response: Response): Promise<unknown> {
+  const raw = await response.text();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return { _raw: raw };
+  }
+}
+
+function toApiErrorMessage(payload: unknown, defaultMessage: string, response: Response): string {
+  if (payload && typeof payload === "object") {
+    const message = String((payload as { message?: string }).message || "").trim();
+    if (message) return message;
+    const raw = String((payload as { _raw?: string })._raw || "").trim();
+    if (raw) return `${defaultMessage} (HTTP ${response.status}): ${raw.slice(0, 200)}`;
+  }
+  return `${defaultMessage} (HTTP ${response.status})`;
+}
+
 function handleUnauthorized(response: Response): void {
   if (response.status !== 401) return;
   clearAdminSession();
@@ -68,12 +88,12 @@ async function request<T>(path: string, init?: RequestInit, withAuth = true): Pr
       });
       handleUnauthorized(response);
 
-      const json = await response.json().catch(() => ({}));
+      const json = await parseJsonResponse(response);
       if (response.ok) {
         return json as T;
       }
 
-      const errorMessage = String((json as { message?: string }).message || "Request failed");
+      const errorMessage = toApiErrorMessage(json, "Request failed", response);
       const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
       if (!isLastCandidate && isRouteNotFound(response, json)) {
         continue;
@@ -111,12 +131,12 @@ async function uploadRequest<T>(path: string, formData: FormData, defaultMessage
       });
       handleUnauthorized(response);
 
-      const json = await response.json().catch(() => ({}));
+      const json = await parseJsonResponse(response);
       if (response.ok) {
         return json as T;
       }
 
-      const errorMessage = String((json as { message?: string }).message || defaultMessage);
+      const errorMessage = toApiErrorMessage(json, defaultMessage, response);
       const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
       if (!isLastCandidate && isRouteNotFound(response, json)) {
         continue;
