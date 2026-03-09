@@ -22,12 +22,16 @@ const CONFIGURED_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replac
 const FALLBACK_API_BASE_URLS =
   typeof window !== "undefined"
     ? [
+        `${window.location.origin}/backend/index.php`,
         `${window.location.origin}/backend`,
+        `${window.location.origin}/farm-fresh/farm-fresh-live/backend/index.php`,
         `${window.location.origin}/farm-fresh/farm-fresh-live/backend`,
+        `${window.location.origin}/farm-fresh/backend/index.php`,
         `${window.location.origin}/farm-fresh/backend`,
         "http://localhost/farm-fresh/farm-fresh-live/backend",
         "http://localhost/farm-fresh/backend",
         "https://api.rushivanagro.com",
+        "https://www.rushivanagro.com/backend/index.php",
         "https://www.rushivanagro.com/backend",
       ]
     : [];
@@ -70,6 +74,12 @@ const isRouteNotFound = (response: Response, payload: unknown): boolean => {
   return message.includes("route not found");
 };
 
+const shouldTryNextBase = (response: Response, payload: unknown): boolean => {
+  if (isRouteNotFound(response, payload)) return true;
+  // Some live servers return 405 when /backend/api/* is not routed to index.php.
+  return response.status === 405;
+};
+
 async function request<T>(path: string, init?: RequestInit, withAuth = true): Promise<T> {
   const headers = new Headers(init?.headers || {});
   headers.set("Content-Type", "application/json");
@@ -95,7 +105,7 @@ async function request<T>(path: string, init?: RequestInit, withAuth = true): Pr
 
       const errorMessage = toApiErrorMessage(json, "Request failed", response);
       const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
-      if (!isLastCandidate && isRouteNotFound(response, json)) {
+      if (!isLastCandidate && shouldTryNextBase(response, json)) {
         continue;
       }
       const error = new Error(errorMessage);
@@ -138,7 +148,7 @@ async function uploadRequest<T>(path: string, formData: FormData, defaultMessage
 
       const errorMessage = toApiErrorMessage(json, defaultMessage, response);
       const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
-      if (!isLastCandidate && isRouteNotFound(response, json)) {
+      if (!isLastCandidate && shouldTryNextBase(response, json)) {
         continue;
       }
       const error = new Error(errorMessage);
