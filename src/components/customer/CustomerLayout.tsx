@@ -42,6 +42,13 @@ const CustomerLayout = () => {
               </NavLink>
             ))}
           </nav>
+          <Button
+            type="button"
+            className="mt-4 w-full bg-emerald-600 hover:bg-emerald-700"
+            onClick={() => navigate("/shop")}
+          >
+            Go To Shop
+          </Button>
           <Button onClick={onLogout} className="mt-6 w-full bg-slate-800 hover:bg-slate-900">
             Logout
           </Button>
