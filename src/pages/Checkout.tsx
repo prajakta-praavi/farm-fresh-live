@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Check } from "lucide-react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
@@ -10,6 +11,7 @@ import { openRazorpayCheckout } from "@/lib/razorpay";
 import { getCachedPublicCatalog, getPublicProductById, getPublicProducts, type PublicProduct } from "@/lib/public-api";
 import { customerApi } from "@/lib/customerApi";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface CheckoutFormState {
   fullName: string;
@@ -115,6 +117,8 @@ const Checkout = () => {
   const [catalog, setCatalog] = useState<PublicProduct[]>(() => getCachedPublicCatalog());
   const [singleProduct, setSingleProduct] = useState<PublicProduct | null>(null);
   const { toast } = useToast();
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [successOrderId, setSuccessOrderId] = useState("");
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",
@@ -427,18 +431,18 @@ const Checkout = () => {
       }
 
       const placedOrderId = (orderResult as { id?: number; invoice_id?: string }).id;
-      toast({
-        title: "Payment Successful!",
-        description: (
-          <div className="space-y-1">
-            <p>Thank you for your purchase. Your order has been placed successfully.</p>
-            <p>Order ID: #{placedOrderId || invoiceId}</p>
-          </div>
-        ),
-      });
+      setSuccessOrderId(String(placedOrderId || invoiceId));
+      setSuccessOpen(true);
       if (target === "cart") {
         clearCart();
       }
+      setForm({
+        fullName: "",
+        email: "",
+        phone: "",
+        address: "",
+        pincode: "",
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to start payment.";
@@ -455,6 +459,47 @@ const Checkout = () => {
   return (
     <Layout>
       <div className="pt-28 pb-16">
+        <Dialog open={successOpen} onOpenChange={setSuccessOpen}>
+          <DialogContent className="max-w-md p-0">
+            <div className="flex flex-col items-center gap-4 px-6 pb-6 pt-8 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white shadow-md">
+                <Check className="h-7 w-7" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-xl font-semibold text-foreground">Thank you for ordering!</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your order has been placed successfully.
+                </p>
+                {successOrderId ? (
+                  <p className="text-sm font-medium text-emerald-700">Order ID: #{successOrderId}</p>
+                ) : null}
+              </div>
+              <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setSuccessOpen(false);
+                    navigate("/customer/orders");
+                  }}
+                >
+                  View Order
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => {
+                    setSuccessOpen(false);
+                    navigate("/shop");
+                  }}
+                >
+                  Continue Shopping
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         <PageBreadcrumb image={checkoutBreadcrumbImage} alt="Checkout banner" />
         <div className="container max-w-3xl">
           <div className="mb-6">

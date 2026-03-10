@@ -102,6 +102,9 @@ function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $it
     $customerAddress = trim((string) ($orderPayload['customer_address'] ?? ''));
     $customerPincode = trim((string) ($orderPayload['customer_pincode'] ?? ''));
     $totalAmount = number_format((float) ($orderPayload['total_amount'] ?? 0), 2, '.', '');
+    $paymentStatus = trim((string) ($orderPayload['payment_status'] ?? 'Pending'));
+    $paymentMethod = trim((string) ($orderPayload['payment_method'] ?? 'Online'));
+    $orderDate = date('d M Y, h:i A');
 
     $itemLines = [];
     foreach ($items as $item) {
@@ -112,13 +115,17 @@ function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $it
     }
     $itemsText = count($itemLines) > 0 ? implode("\n", $itemLines) : '- No items';
 
-    $subject = sprintf('New Product Order Received #%d - Rushivan Agro', $orderId);
+    $subject = sprintf('New Order Received – Order #%d', $orderId);
     $message = implode("\n", [
-        'A new order has been placed on your website.',
+        'Hello Admin,',
+        '',
+        'A new order has been placed on the website.',
         '',
         'Order ID: ' . $orderId,
-        'Order Date: ' . date('Y-m-d H:i:s'),
+        'Order Date: ' . $orderDate,
         'Total Amount: Rs ' . $totalAmount,
+        'Payment Method: ' . ($paymentMethod !== '' ? $paymentMethod : 'Online'),
+        'Payment Status: ' . ($paymentStatus !== '' ? $paymentStatus : 'Pending'),
         '',
         'Customer Details:',
         'Name: ' . ($customerName !== '' ? $customerName : 'N/A'),
@@ -127,10 +134,13 @@ function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $it
         'Address: ' . ($customerAddress !== '' ? $customerAddress : 'N/A'),
         'Pincode: ' . ($customerPincode !== '' ? $customerPincode : 'N/A'),
         '',
-        'Items:',
+        'Order Details:',
         $itemsText,
         '',
-        'Generated at: ' . date('Y-m-d H:i:s'),
+        'Please process the order and arrange shipment.',
+        '',
+        'Regards,',
+        'Website Order System',
     ]);
 
     $fromEmail = trim((string) env('MAIL_FROM', 'noreply@rushivanagro.com'));
@@ -163,6 +173,7 @@ function sendCustomerOrderConfirmation(int $orderId, string $invoiceId, array $o
     $paymentLine = strcasecmp($paymentStatus, 'Paid') === 0
         ? 'Payment Status: Paid (Payment successful)'
         : 'Payment Status: ' . ($paymentStatus !== '' ? $paymentStatus : 'Pending');
+    $orderDate = date('d M Y, h:i A');
 
     $itemLines = [];
     foreach ($items as $item) {
@@ -175,31 +186,28 @@ function sendCustomerOrderConfirmation(int $orderId, string $invoiceId, array $o
 
     $trackingNumber = trim((string) ($orderPayload['tracking_number'] ?? ''));
     $trackingUrl = trim((string) ($orderPayload['tracking_url'] ?? ''));
-    $subject = 'Order Confirmation - Your Order is Successfully Placed';
+    $websiteUrl = rtrim((string) env('WEBSITE_URL', 'https://www.rushivanagro.com'), '/');
+    $trackLink = $trackingUrl !== '' ? $trackingUrl : ($websiteUrl !== '' ? $websiteUrl . '/track-order' : '');
+    $subject = sprintf('Your Order is Confirmed – Order #%d', $orderId);
     $message = implode("\n", [
         'Dear ' . ($customerName !== '' ? $customerName : 'Customer') . ',',
         '',
-        'Thank you for your order at Rushivan Agro.',
-        'Your order has been received successfully.',
+        'Thank you for shopping with us! Your order has been successfully placed.',
         '',
-        'Order ID: ' . $orderId,
-        'Invoice ID: ' . ($invoiceId !== '' ? $invoiceId : 'N/A'),
+        'Order Details:',
+        'Order ID: #' . $orderId,
+        'Order Date: ' . $orderDate,
         $paymentLine,
         'Total Amount: Rs ' . $totalAmount,
         '',
-        'Contact Details:',
-        'Phone: ' . ($customerPhone !== '' ? $customerPhone : 'N/A'),
-        'Address: ' . ($customerAddress !== '' ? $customerAddress : 'N/A'),
-        'Pincode: ' . ($customerPincode !== '' ? $customerPincode : 'N/A'),
-        '',
-        'Items:',
+        'Product Details:',
         $itemsText,
         '',
-        'Track your order:',
+        'Tracking Information:',
         'Tracking Number: ' . ($trackingNumber !== '' ? $trackingNumber : 'Not available yet'),
-        $trackingUrl !== '' ? $trackingUrl : 'Tracking link will be shared once the order is shipped.',
+        $trackLink !== '' ? ('Track Order: ' . $trackLink) : 'Tracking link will be shared once the order is shipped.',
         '',
-        'We will contact you soon regarding delivery updates.',
+        'Your order is now being processed. You will receive another email once your order is shipped.',
         '',
         'Regards,',
         'Rushivan Agro',
