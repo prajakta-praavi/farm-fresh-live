@@ -676,9 +676,27 @@ try {
 
     if ($path === '/api/customer/orders' && $method === 'GET') {
         $customer = requireCustomer();
-        $stmt = $pdo->prepare('SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC');
-        $stmt->execute([(int) $customer['id']]);
-        jsonResponse($stmt->fetchAll());
+        $customerId = (int) ($customer['id'] ?? 0);
+        $customerEmail = trim((string) ($customer['email'] ?? ''));
+        $stmt = $pdo->prepare('
+            SELECT * FROM orders
+            WHERE customer_id = ?
+               OR (customer_id IS NULL AND customer_email = ?)
+            ORDER BY created_at DESC
+        ');
+        $stmt->execute([$customerId, $customerEmail]);
+        $rows = $stmt->fetchAll();
+
+        if ($customerId > 0 && $customerEmail !== '') {
+            $linkStmt = $pdo->prepare('
+                UPDATE orders
+                SET customer_id = ?
+                WHERE customer_id IS NULL AND customer_email = ?
+            ');
+            $linkStmt->execute([$customerId, $customerEmail]);
+        }
+
+        jsonResponse($rows);
     }
 
     if ($path === '/api/categories' && $method === 'GET') {
@@ -1761,6 +1779,17 @@ try {
         }
         $customerSession = authCustomer();
         $customerId = $customerSession ? (int) ($customerSession['id'] ?? 0) : null;
+        if (!$customerId) {
+            $lookupEmail = trim((string) ($body['customer_email'] ?? ''));
+            if ($lookupEmail !== '') {
+                $custStmt = $pdo->prepare('SELECT id FROM customers WHERE email = ? LIMIT 1');
+                $custStmt->execute([$lookupEmail]);
+                $existingCustomer = $custStmt->fetch();
+                if ($existingCustomer && isset($existingCustomer['id'])) {
+                    $customerId = (int) $existingCustomer['id'];
+                }
+            }
+        }
         try {
             $pdo->beginTransaction();
             $stmt = $pdo->prepare('
