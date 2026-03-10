@@ -118,7 +118,7 @@ const ProductDetails = () => {
               <p className="inline-flex bg-primary/10 text-primary text-xs px-3 py-1 rounded-full font-medium mb-3">
                 {product.category}
               </p>
-              <h1 className="mb-2 break-words text-3xl font-display font-bold md:text-4xl">{product.name}</h1>
+              <h1 className="mb-2 break-words text-2xl sm:text-3xl font-display font-bold md:text-4xl">{product.name}</h1>
               <p className="text-muted-foreground mb-4">{description}</p>
               <p className="text-sm text-muted-foreground mb-2">HSN: {product.hsnCode || "N/A"}</p>
               <p className="text-sm text-muted-foreground mb-2">

@@ -251,7 +251,7 @@ const Index = () => {
               className={`leading-tight mb-2 sm:mb-3 ${
                 currentSlide.theme === "strawberry"
                   ? "text-[#9d673f] text-sm sm:text-2xl md:text-3xl font-extrabold tracking-[0.09em] sm:tracking-[0.18em]"
-                  : "text-[#06533A] text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight"
+                  : "text-[#06533A] text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight"
               }`}
             >
               {currentSlide.title}
@@ -306,7 +306,7 @@ const Index = () => {
       <section className="bg-white py-10 md:py-14">
         <div className="container">
           <div className="mb-8 text-center">
-            <h2 className="text-[clamp(1.9rem,8vw,2.25rem)] md:text-4xl font-display font-bold text-foreground whitespace-nowrap">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground leading-tight break-words">
               Welcome to Rushivan Aagro
             </h2>
           </div>
@@ -347,7 +347,7 @@ const Index = () => {
       <section className="py-10 md:py-14 bg-cream">
         <div className="container">
           <div className="text-center mb-8">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
               Explore Our Categories
             </h2>
           </div>
@@ -385,7 +385,7 @@ const Index = () => {
         <div className="container">
           <div className="flex items-center justify-between mb-12">
             <div>
-              <h2 className="text-3xl md:text-4xl font-display font-bold mb-2">Featured Products</h2>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-2">Featured Products</h2>
             </div>
             <Button asChild variant="outline" className="hidden md:flex rounded-full">
               <Link to="/shop">
@@ -411,7 +411,7 @@ const Index = () => {
       <section className="py-10 md:py-14 bg-primary/5">
         <div className="container">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-3">Why Choose Rushivan Aagro?</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-3">Why Choose Rushivan Aagro?</h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {whyChoose.map((item, i) => (
@@ -486,7 +486,7 @@ const Index = () => {
               viewport={{ once: true }}
             >
               <span className="text-accent font-semibold text-sm uppercase tracking-wide">Experience the Farm Life</span>
-              <h2 className="text-3xl md:text-4xl font-display font-bold mt-2 mb-4">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mt-2 mb-4">
                 Stay at Our Farm
               </h2>
               <p className="text-muted-foreground mb-6 leading-relaxed">
@@ -520,7 +520,7 @@ const Index = () => {
         <div className="absolute inset-0 bg-white/85" />
         <div className="container relative z-10">
           <div className="text-center mb-6 md:mb-8">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold">What Our Customers Say</h2>
+            <h2 className="text-[1.7rem] sm:text-3xl md:text-4xl font-display font-bold">What Our Customers Say</h2>
           </div>
           <div className="mb-3 md:mb-4 flex items-center justify-end gap-2">
             <button
@@ -576,7 +576,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-primary/85" />
         </div>
         <div className="container relative z-10 text-center">
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-primary-foreground mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-primary-foreground mb-4">
             Taste the Difference of Real Farm Produce
           </h2>
           <Button

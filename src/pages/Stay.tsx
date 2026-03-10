@@ -332,7 +332,7 @@ const Stay = () => {
                 ) : null}
 
                 <Button
-                  className="h-12 w-full rounded-full text-base"
+                  className="h-12 w-full rounded-full bg-primary text-base text-primary-foreground hover:bg-primary/90 disabled:bg-primary/70 disabled:opacity-60"
                   disabled={!checkIn || !checkOut || numberOfDays <= 0}
                   onClick={() =>
                     navigate(

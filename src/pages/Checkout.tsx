@@ -9,6 +9,7 @@ import { getCartDetailedItems, clearCart } from "@/lib/cart";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { getCachedPublicCatalog, getPublicProductById, getPublicProducts, type PublicProduct } from "@/lib/public-api";
 import { customerApi } from "@/lib/customerApi";
+import { useToast } from "@/hooks/use-toast";
 
 interface CheckoutFormState {
   fullName: string;
@@ -113,6 +114,7 @@ const Checkout = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [catalog, setCatalog] = useState<PublicProduct[]>(() => getCachedPublicCatalog());
   const [singleProduct, setSingleProduct] = useState<PublicProduct | null>(null);
+  const { toast } = useToast();
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",
@@ -338,7 +340,11 @@ const Checkout = () => {
       !form.address.trim() ||
       !form.pincode.trim()
     ) {
-      alert("Please fill all checkout details.");
+      toast({
+        title: "Missing details",
+        description: "Please fill all checkout details.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -421,18 +427,26 @@ const Checkout = () => {
       }
 
       const placedOrderId = (orderResult as { id?: number; invoice_id?: string }).id;
-      alert(
-        `Payment Successful!\nThank you for your purchase. Your order has been placed successfully.\nOrder ID: #${
-          placedOrderId || invoiceId
-        }`
-      );
+      toast({
+        title: "Payment Successful!",
+        description: (
+          <div className="space-y-1">
+            <p>Thank you for your purchase. Your order has been placed successfully.</p>
+            <p>Order ID: #{placedOrderId || invoiceId}</p>
+          </div>
+        ),
+      });
       if (target === "cart") {
         clearCart();
       }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to start payment.";
-      alert(message);
+      toast({
+        title: "Payment Failed",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsPaying(false);
     }

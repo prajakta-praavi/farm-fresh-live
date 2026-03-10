@@ -5,6 +5,7 @@ import { ArrowRight, Clock } from "lucide-react";
 import Layout from "@/components/Layout";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import blogBreadcrumbImage from "@/assets/blog breadcrub.png";
+import blogFallbackImage from "@/assets/blog-1.png";
 import { getPublicBlogs, type PublicBlogPost } from "@/lib/public-api";
 
 const Blog = () => {
@@ -24,7 +25,7 @@ const Blog = () => {
 
         <div className="container">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">Our Blog</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground">Our Blog</h1>
           </div>
           {loading ? <p className="text-center text-muted-foreground">Loading blogs...</p> : null}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -38,9 +39,15 @@ const Blog = () => {
               >
                 <div className="aspect-[3/2] overflow-hidden">
                   <img
-                    src={post.image}
+                    src={post.image || blogFallbackImage}
                     alt={post.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(event) => {
+                      const target = event.currentTarget;
+                      if (target.src !== blogFallbackImage) {
+                        target.src = blogFallbackImage;
+                      }
+                    }}
                   />
                 </div>
                 <div className="p-5">

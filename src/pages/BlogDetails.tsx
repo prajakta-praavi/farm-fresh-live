@@ -4,6 +4,7 @@ import { Clock, ArrowLeft } from "lucide-react";
 import Layout from "@/components/Layout";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import blogBreadcrumbImage from "@/assets/blog breadcrub.png";
+import blogFallbackImage from "@/assets/blog-1.png";
 import { getPublicBlogBySlug, type PublicBlogPost } from "@/lib/public-api";
 
 const BlogDetails = () => {
@@ -38,7 +39,7 @@ const BlogDetails = () => {
       <Layout>
         <div className="pt-24 pb-16">
           <div className="container">
-            <h1 className="text-3xl font-display font-bold mb-4">Blog Not Found</h1>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold mb-4">Blog Not Found</h1>
             <p className="text-muted-foreground mb-6">The blog you are looking for does not exist.</p>
             <Link to="/blog" className="inline-flex items-center gap-2 text-primary font-semibold">
               <ArrowLeft className="w-4 h-4" />
@@ -62,11 +63,21 @@ const BlogDetails = () => {
           </Link>
 
           <div>
-            <h1 className="mb-5 text-3xl md:text-4xl font-display font-bold text-foreground">
+            <h1 className="mb-5 text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground">
               {post.title}
             </h1>
             <p className="mb-2 text-sm text-muted-foreground">By {post.author}</p>
-            <img src={post.image} alt={post.title} className="mb-6 h-[320px] md:h-[520px] w-full object-cover" />
+            <img
+              src={post.image || blogFallbackImage}
+              alt={post.title}
+              className="mb-6 h-[320px] md:h-[520px] w-full object-cover"
+              onError={(event) => {
+                const target = event.currentTarget;
+                if (target.src !== blogFallbackImage) {
+                  target.src = blogFallbackImage;
+                }
+              }}
+            />
             <div className="mb-4 flex items-center gap-3 text-sm text-muted-foreground">
               <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
                 {post.category}

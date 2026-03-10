@@ -140,7 +140,7 @@ const Contact = () => {
                       type="email"
                       value={form.email}
                       onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-                      placeholder="your@email.com"
+                      placeholder="Enter your mail"
                       className="rounded-xl"
                     />
                   </div>
@@ -150,7 +150,7 @@ const Contact = () => {
                   <Input
                     value={form.phone}
                     onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    placeholder="+91 12137676"
+                    placeholder="Enter your phone number"
                     className="rounded-xl"
                   />
                 </div>

@@ -54,6 +54,7 @@ const Footer = () => {
                   { to: "/shop", label: "Shop" },
                   { to: "/stay", label: "Stay" },
                   { to: "/corporate-gifting", label: "Corporate Gifting" },
+                  { to: "/track-order", label: "Track Order" },
                   { to: "/contact", label: "Contact" },
                 ].map((link) => (
                   <li key={link.to}>

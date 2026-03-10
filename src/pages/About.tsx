@@ -25,7 +25,7 @@ const About = () => (
           className="grid md:grid-cols-2 gap-10 items-start"
         >
           <div>
-            <h2 className="text-4xl font-display font-bold mb-5">About Rushivan Aagro</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-5">About Rushivan Aagro</h2>
             <p className="text-foreground leading-relaxed mb-4">
               Welcome to Rushivan Aagro, where nature, sustainability, and organic living come
               together. Surrounded by lush greenery, our farm offers more than just a stay - it is
@@ -101,7 +101,7 @@ const About = () => (
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
           <div className="text-center md:text-left">
             <img src={visionImage} alt="Our Vision" className="h-20 w-20 mx-auto mb-4 object-contain" />
-            <h3 className="text-center text-3xl font-display font-bold text-[#0b7a55] mb-4">Our Vision | आमचे ध्येय</h3>
+            <h3 className="text-center text-2xl sm:text-3xl font-display font-bold text-[#0b7a55] mb-4">Our Vision | आमचे ध्येय</h3>
             <p className="text-foreground leading-relaxed mb-3">
               To create a world where people reconnect with nature, experience sustainable living,
               and find peace in the simplicity of rural life.
@@ -114,7 +114,7 @@ const About = () => (
 
           <div className="text-center md:text-left">
             <img src={missionImage} alt="Our Mission" className="h-20 w-20 mx-auto mb-4 object-contain" />
-            <h3 className="text-center text-3xl font-display font-bold text-[#0b7a55] mb-4">Our Mission | आमचे उद्दिष्ट</h3>
+            <h3 className="text-center text-2xl sm:text-3xl font-display font-bold text-[#0b7a55] mb-4">Our Mission | आमचे उद्दिष्ट</h3>
             <p className="text-foreground leading-relaxed mb-3">
               To promote organic farming, eco-friendly living, and traditional wisdom through
               authentic farm experiences that inspire healthy and mindful living.
@@ -128,7 +128,7 @@ const About = () => (
 
         <section className="rounded-3xl border border-[#dbe6df] p-4 md:p-6">
           <div className="mb-5 text-center">
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground">
               Our Certifications
             </h2>
           </div>

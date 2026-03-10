@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import OrderTracking from "./pages/OrderTracking";
 import AdminLogin from "@/admin/pages/AdminLogin";
 import AdminDashboard from "@/admin/pages/AdminDashboard";
 import AdminProducts from "@/admin/pages/AdminProducts";
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="/product/:id" element={<ProductDetails />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout/:target" element={<Checkout />} />
+          <Route path="/track-order" element={<OrderTracking />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<AdminProtectedRoute />}>
             <Route element={<AdminLayout />}>

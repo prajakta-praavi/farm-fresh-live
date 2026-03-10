@@ -36,7 +36,7 @@ const Cart = () => {
       <div className="pt-28 pb-16">
         <div className="container">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-3xl font-display font-bold">Your Cart</h1>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold">Your Cart</h1>
             {items.length > 0 && (
               <Button variant="outline" onClick={clearCart}>
                 Clear Cart

@@ -141,7 +141,7 @@ function sendOwnerOrderNotification(int $orderId, array $orderPayload, array $it
     ];
 
     try {
-        @mail($ownerEmail, $subject, $message, implode("\r\n", $headers));
+        sendEmail($ownerEmail, $subject, $message, $headers);
     } catch (Throwable $e) {
         // Do not fail checkout if email service is unavailable.
     }
@@ -173,6 +173,7 @@ function sendCustomerOrderConfirmation(int $orderId, string $invoiceId, array $o
     }
     $itemsText = count($itemLines) > 0 ? implode("\n", $itemLines) : '- No items';
 
+    $trackingNumber = trim((string) ($orderPayload['tracking_number'] ?? ''));
     $trackingUrl = trim((string) ($orderPayload['tracking_url'] ?? ''));
     $subject = 'Order Confirmation - Your Order is Successfully Placed';
     $message = implode("\n", [
@@ -195,6 +196,7 @@ function sendCustomerOrderConfirmation(int $orderId, string $invoiceId, array $o
         $itemsText,
         '',
         'Track your order:',
+        'Tracking Number: ' . ($trackingNumber !== '' ? $trackingNumber : 'Not available yet'),
         $trackingUrl !== '' ? $trackingUrl : 'Tracking link will be shared once the order is shipped.',
         '',
         'We will contact you soon regarding delivery updates.',
@@ -211,7 +213,7 @@ function sendCustomerOrderConfirmation(int $orderId, string $invoiceId, array $o
     ];
 
     try {
-        @mail($customerEmail, $subject, $message, implode("\r\n", $headers));
+        sendEmail($customerEmail, $subject, $message, $headers);
     } catch (Throwable $e) {
         // Do not fail checkout if email service is unavailable.
     }
@@ -340,7 +342,7 @@ function sendCustomerOrderStatusUpdate(int $orderId, array $orderData, array $it
     ];
 
     try {
-        @mail($customerEmail, $subject, $message, implode("\r\n", $headers));
+        sendEmail($customerEmail, $subject, $message, $headers);
     } catch (Throwable $e) {
         // Do not fail status update if email service is unavailable.
     }
