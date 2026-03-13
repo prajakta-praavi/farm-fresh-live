@@ -83,10 +83,13 @@ function authUser(): ?array
 {
     startSessionIfNeeded();
     if (isset($_SESSION['admin']) && is_array($_SESSION['admin'])) {
+        $role = (string) ($_SESSION['admin']['role'] ?? 'administrator');
+        $source = (string) ($_SESSION['admin']['source'] ?? 'admins');
         return [
             'id' => (int) ($_SESSION['admin']['id'] ?? 0),
             'email' => (string) ($_SESSION['admin']['email'] ?? ''),
-            'role' => 'admin',
+            'role' => $role,
+            'source' => $source,
         ];
     }
 
@@ -104,16 +107,36 @@ function authUser(): ?array
         'id' => (int) ($payload['id'] ?? 0),
         'email' => (string) ($payload['email'] ?? ''),
         'role' => (string) ($payload['role'] ?? ''),
+        'source' => (string) ($payload['source'] ?? 'token'),
     ];
+}
+
+function requireRole(array $roles): array
+{
+    $user = authUser();
+    if (!$user) {
+        jsonResponse(['message' => 'Unauthorized'], 401);
+    }
+    $role = strtolower((string) ($user['role'] ?? ''));
+    if ($role === 'admin') {
+        $role = 'administrator';
+    }
+    $allowed = array_map(static fn(string $r): string => strtolower($r), $roles);
+    if (!in_array($role, $allowed, true)) {
+        jsonResponse(['message' => 'Unauthorized'], 401);
+    }
+    $user['role'] = $role;
+    return $user;
 }
 
 function requireAdmin(): array
 {
-    $user = authUser();
-    if (!$user || $user['role'] !== 'admin') {
-        jsonResponse(['message' => 'Unauthorized'], 401);
-    }
-    return $user;
+    return requireRole(['administrator']);
+}
+
+function requireAuthor(): array
+{
+    return requireRole(['administrator', 'author']);
 }
 
 function ensureBootstrapAdmin(): void
@@ -156,7 +179,7 @@ function requireCustomer(): array
     return $customer;
 }
 
-function setAdminSession(array $admin): void
+function setAdminSession(array $admin, string $role = 'administrator', string $source = 'admins'): void
 {
     startSessionIfNeeded();
     session_regenerate_id(true);
@@ -165,6 +188,8 @@ function setAdminSession(array $admin): void
         'name' => (string) ($admin['name'] ?? ''),
         'username' => (string) ($admin['username'] ?? ''),
         'email' => (string) ($admin['email'] ?? ''),
+        'role' => $role,
+        'source' => $source,
     ];
     unset($_SESSION['customer']);
 }

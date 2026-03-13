@@ -1,3 +1,5 @@
+import type { UserRole } from "@/admin/types";
+
 const ADMIN_TOKEN_KEY = "rushivan_admin_token";
 const ADMIN_USER_KEY = "rushivan_admin_user";
 export const ADMIN_SESSION_EVENT = "rushivan-admin-session-updated";
@@ -9,7 +11,7 @@ export interface AdminUser {
   email: string;
   profile_image?: string | null;
   last_login?: string | null;
-  role: "admin";
+  role: UserRole | "admin";
 }
 
 export const getAdminToken = () => {

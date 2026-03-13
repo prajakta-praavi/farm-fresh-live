@@ -435,6 +435,7 @@ function createStockMovement(
 
 try {
     ensureAuthSchema();
+    ensureUsersSchema();
     ensureBootstrapAdmin();
     ensureBlogSchema();
     ensureDefaultCategories();
@@ -457,28 +458,72 @@ try {
         $stmt->execute([$email]);
         $admin = $stmt->fetch();
 
-        if (!$admin || !password_verify($password, (string) $admin['password'])) {
+        if ($admin && password_verify($password, (string) $admin['password'])) {
+            setAdminSession($admin, 'administrator', 'admins');
+            $pdo->prepare('UPDATE admins SET last_login = NOW() WHERE id = ?')->execute([(int) $admin['id']]);
+            $token = createJwt([
+                'id' => (int) $admin['id'],
+                'email' => (string) $admin['email'],
+                'role' => 'administrator',
+                'source' => 'admins',
+            ]);
+
+            jsonResponse([
+                'token' => $token,
+                'user' => [
+                    'id' => (int) $admin['id'],
+                    'name' => (string) $admin['name'],
+                    'username' => (string) $admin['username'],
+                    'email' => (string) $admin['email'],
+                    'profile_image' => $admin['profile_image'] ?? null,
+                    'last_login' => $admin['last_login'] ?? null,
+                    'role' => 'administrator',
+                    'source' => 'admins',
+                ],
+            ]);
+        }
+
+        $userStmt = $pdo->prepare('SELECT id, username, email, password, role, created_at, updated_at FROM users WHERE email = ? LIMIT 1');
+        $userStmt->execute([$email]);
+        $user = $userStmt->fetch();
+
+        if (!$user || !password_verify($password, (string) $user['password'])) {
             jsonResponse(['message' => 'Invalid email or password'], 401);
         }
 
-        setAdminSession($admin);
-        $pdo->prepare('UPDATE admins SET last_login = NOW() WHERE id = ?')->execute([(int) $admin['id']]);
+        $role = strtolower((string) ($user['role'] ?? 'subscriber'));
+        if ($role === 'subscriber') {
+            jsonResponse(['message' => 'Subscriber accounts must use customer login'], 403);
+        }
+
+        setAdminSession(
+            [
+                'id' => (int) $user['id'],
+                'name' => (string) ($user['username'] ?? ''),
+                'username' => (string) ($user['username'] ?? ''),
+                'email' => (string) ($user['email'] ?? ''),
+            ],
+            $role,
+            'users'
+        );
         $token = createJwt([
-            'id' => (int) $admin['id'],
-            'email' => (string) $admin['email'],
-            'role' => 'admin',
+            'id' => (int) $user['id'],
+            'email' => (string) $user['email'],
+            'role' => $role,
+            'source' => 'users',
         ]);
 
         jsonResponse([
             'token' => $token,
             'user' => [
-                'id' => (int) $admin['id'],
-                'name' => (string) $admin['name'],
-                'username' => (string) $admin['username'],
-                'email' => (string) $admin['email'],
-                'profile_image' => $admin['profile_image'] ?? null,
-                'last_login' => $admin['last_login'] ?? null,
-                'role' => 'admin',
+                'id' => (int) $user['id'],
+                'name' => (string) ($user['username'] ?? ''),
+                'username' => (string) ($user['username'] ?? ''),
+                'email' => (string) ($user['email'] ?? ''),
+                'role' => $role,
+                'source' => 'users',
+                'created_at' => $user['created_at'] ?? null,
+                'updated_at' => $user['updated_at'] ?? null,
             ],
         ]);
     }
@@ -489,24 +534,64 @@ try {
     }
 
     if ($path === '/api/admin/me' && $method === 'GET') {
-        $auth = requireAdmin();
+        $auth = requireRole(['administrator', 'author']);
+        if (($auth['source'] ?? '') === 'users') {
+            $stmt = $pdo->prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ? LIMIT 1');
+            $stmt->execute([(int) $auth['id']]);
+            $user = $stmt->fetch();
+            if (!$user) {
+                jsonResponse(['message' => 'User not found'], 404);
+            }
+            $user['name'] = $user['username'] ?? '';
+            jsonResponse($user);
+        }
+
         $stmt = $pdo->prepare('SELECT id, name, username, email, profile_image, last_login, created_at FROM admins WHERE id = ? LIMIT 1');
         $stmt->execute([(int) $auth['id']]);
         $admin = $stmt->fetch();
         if (!$admin) {
             jsonResponse(['message' => 'Admin not found'], 404);
         }
+        $admin['role'] = 'administrator';
+        $admin['source'] = 'admins';
         jsonResponse($admin);
     }
 
     if ($path === '/api/admin/profile' && $method === 'PUT') {
-        $auth = requireAdmin();
+        $auth = requireRole(['administrator', 'author']);
         $name = trim((string) ($body['name'] ?? ''));
         $username = trim((string) ($body['username'] ?? ''));
         $email = trim((string) ($body['email'] ?? ''));
         if ($name === '' || $username === '' || $email === '') {
             jsonResponse(['message' => 'Name, username and email are required'], 422);
         }
+        if (($auth['source'] ?? '') === 'users') {
+            $dup = $pdo->prepare('SELECT id FROM users WHERE (username = ? OR email = ?) AND id <> ? LIMIT 1');
+            $dup->execute([$username, $email, (int) $auth['id']]);
+            if ($dup->fetch()) {
+                jsonResponse(['message' => 'Username or email is already in use'], 422);
+            }
+            $stmt = $pdo->prepare('UPDATE users SET username = ?, email = ? WHERE id = ?');
+            $stmt->execute([$username, $email, (int) $auth['id']]);
+            $stmt = $pdo->prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ? LIMIT 1');
+            $stmt->execute([(int) $auth['id']]);
+            $updated = $stmt->fetch();
+            if ($updated) {
+                setAdminSession(
+                    [
+                        'id' => (int) $updated['id'],
+                        'name' => (string) ($updated['username'] ?? ''),
+                        'username' => (string) ($updated['username'] ?? ''),
+                        'email' => (string) ($updated['email'] ?? ''),
+                    ],
+                    (string) ($updated['role'] ?? 'author'),
+                    'users'
+                );
+                $updated['name'] = $updated['username'] ?? '';
+            }
+            jsonResponse($updated ?: []);
+        }
+
         $dup = $pdo->prepare('SELECT id FROM admins WHERE (username = ? OR email = ?) AND id <> ? LIMIT 1');
         $dup->execute([$username, $email, (int) $auth['id']]);
         if ($dup->fetch()) {
@@ -518,18 +603,32 @@ try {
         $stmt->execute([(int) $auth['id']]);
         $updated = $stmt->fetch();
         if ($updated) {
-            setAdminSession($updated);
+            setAdminSession($updated, 'administrator', 'admins');
+            $updated['role'] = 'administrator';
+            $updated['source'] = 'admins';
         }
         jsonResponse($updated ?: []);
     }
 
     if ($path === '/api/admin/profile/password' && $method === 'PATCH') {
-        $auth = requireAdmin();
+        $auth = requireRole(['administrator', 'author']);
         $currentPassword = (string) ($body['current_password'] ?? '');
         $newPassword = (string) ($body['new_password'] ?? '');
         if ($currentPassword === '' || strlen($newPassword) < 6) {
             jsonResponse(['message' => 'Current password and new password (min 6 chars) are required'], 422);
         }
+        if (($auth['source'] ?? '') === 'users') {
+            $stmt = $pdo->prepare('SELECT password FROM users WHERE id = ? LIMIT 1');
+            $stmt->execute([(int) $auth['id']]);
+            $row = $stmt->fetch();
+            if (!$row || !password_verify($currentPassword, (string) $row['password'])) {
+                jsonResponse(['message' => 'Current password is incorrect'], 401);
+            }
+            $stmt = $pdo->prepare('UPDATE users SET password = ? WHERE id = ?');
+            $stmt->execute([password_hash($newPassword, PASSWORD_DEFAULT), (int) $auth['id']]);
+            jsonResponse(['success' => true]);
+        }
+
         $stmt = $pdo->prepare('SELECT password FROM admins WHERE id = ? LIMIT 1');
         $stmt->execute([(int) $auth['id']]);
         $row = $stmt->fetch();
@@ -542,7 +641,10 @@ try {
     }
 
     if ($path === '/api/admin/profile/photo' && $method === 'POST') {
-        $auth = requireAdmin();
+        $auth = requireRole(['administrator', 'author']);
+        if (($auth['source'] ?? '') === 'users') {
+            jsonResponse(['message' => 'Profile image upload is not available for this account'], 403);
+        }
         if (!isset($_FILES['image']) || !is_array($_FILES['image'])) {
             jsonResponse(['message' => 'Profile image is required'], 422);
         }
@@ -1555,13 +1657,13 @@ try {
     }
 
     if ($path === '/api/blog-categories' && $method === 'GET') {
-        requireAdmin();
+        requireAuthor();
         $rows = $pdo->query('SELECT id, name, created_at FROM blog_categories ORDER BY name ASC')->fetchAll();
         jsonResponse($rows);
     }
 
     if ($path === '/api/blog-categories' && $method === 'POST') {
-        requireAdmin();
+        requireAuthor();
         $name = trim((string) ($body['name'] ?? ''));
         if ($name === '') {
             jsonResponse(['message' => 'Category name is required'], 422);
@@ -1580,7 +1682,7 @@ try {
     }
 
     if (preg_match('#^/api/blog-categories/(\d+)$#', $path, $m) && $method === 'DELETE') {
-        requireAdmin();
+        requireAuthor();
         $categoryId = (int) $m[1];
         $rowStmt = $pdo->prepare('SELECT id, name FROM blog_categories WHERE id = ? LIMIT 1');
         $rowStmt->execute([$categoryId]);
@@ -1597,7 +1699,7 @@ try {
     }
 
     if ($path === '/api/blogs' && $method === 'GET') {
-        requireAdmin();
+        requireAuthor();
         $rows = $pdo->query('
             SELECT
                 id,
@@ -1620,7 +1722,7 @@ try {
     }
 
     if ($path === '/api/blogs' && $method === 'POST') {
-        requireAdmin();
+        requireAuthor();
         $title = trim((string) ($body['title'] ?? ''));
         $authorName = trim((string) ($body['author_name'] ?? 'Rushivan Aagro'));
         $excerpt = trim((string) ($body['excerpt'] ?? ''));
@@ -1670,7 +1772,7 @@ try {
     }
 
     if (preg_match('#^/api/blogs/(\d+)$#', $path, $m) && $method === 'PUT') {
-        requireAdmin();
+        requireAuthor();
         $id = (int) $m[1];
         $title = trim((string) ($body['title'] ?? ''));
         $authorName = trim((string) ($body['author_name'] ?? 'Rushivan Aagro'));
@@ -1718,7 +1820,7 @@ try {
     }
 
     if (preg_match('#^/api/blogs/(\d+)$#', $path, $m) && $method === 'DELETE') {
-        requireAdmin();
+        requireAuthor();
         $id = (int) $m[1];
         $stmt = $pdo->prepare('DELETE FROM blog_posts WHERE id = ?');
         $stmt->execute([$id]);

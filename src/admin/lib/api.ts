@@ -172,7 +172,16 @@ export const adminApi = {
   login: (email: string, password: string) =>
     request<{
       token: string;
-      user: { id: number; name: string; username?: string; email: string; profile_image?: string | null; last_login?: string | null; role: "admin" };
+      user: {
+        id: number;
+        name: string;
+        username?: string;
+        email: string;
+        profile_image?: string | null;
+        last_login?: string | null;
+        role: UserRole | "admin";
+        source?: "admins" | "users" | "token";
+      };
     }>(
       "/api/auth/login",
       { method: "POST", body: JSON.stringify({ email, password }) },

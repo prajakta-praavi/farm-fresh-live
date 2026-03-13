@@ -35,7 +35,7 @@ const AdminProfile = () => {
         email: data.email,
         profile_image: data.profile_image || null,
         last_login: data.last_login || null,
-        role: "admin",
+        role: data.role || "administrator",
       });
     }
   };
@@ -60,7 +60,7 @@ const AdminProfile = () => {
           email: updated.email,
           profile_image: updated.profile_image || null,
           last_login: updated.last_login || null,
-          role: "admin",
+          role: updated.role || "administrator",
         });
       }
       setMessage("Profile updated.");
@@ -108,7 +108,7 @@ const AdminProfile = () => {
             email: updated.email,
             profile_image: updated.profile_image || null,
             last_login: updated.last_login || null,
-            role: "admin",
+            role: updated.role || "administrator",
           });
         }
         return updated;
@@ -151,7 +151,7 @@ const AdminProfile = () => {
         <p className="text-xs text-slate-500">
           Last login: {profile?.last_login ? new Date(profile.last_login).toLocaleString() : "-"}
         </p>
-        <p className="text-xs text-slate-500">Role: Administrator</p>
+        <p className="text-xs text-slate-500">Role: {profile?.role || "administrator"}</p>
       </div>
 
       <div className="rounded-xl border bg-white p-4 space-y-3">

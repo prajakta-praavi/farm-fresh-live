@@ -130,6 +130,8 @@ export interface AdminProfile {
   profile_image?: string | null;
   last_login?: string | null;
   created_at?: string;
+  role?: UserRole | "admin";
+  source?: "admins" | "users" | "token";
 }
 
 export interface CustomerRecord {
