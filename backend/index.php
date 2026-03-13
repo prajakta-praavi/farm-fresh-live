@@ -483,7 +483,7 @@ try {
             ]);
         }
 
-        $userStmt = $pdo->prepare('SELECT id, username, email, password, role, created_at, updated_at FROM users WHERE email = ? LIMIT 1');
+        $userStmt = $pdo->prepare('SELECT id, username, email, password, role, profile_image, created_at, updated_at FROM users WHERE email = ? LIMIT 1');
         $userStmt->execute([$email]);
         $user = $userStmt->fetch();
 
@@ -520,6 +520,7 @@ try {
                 'name' => (string) ($user['username'] ?? ''),
                 'username' => (string) ($user['username'] ?? ''),
                 'email' => (string) ($user['email'] ?? ''),
+                'profile_image' => $user['profile_image'] ?? null,
                 'role' => $role,
                 'source' => 'users',
                 'created_at' => $user['created_at'] ?? null,
@@ -536,7 +537,7 @@ try {
     if ($path === '/api/admin/me' && $method === 'GET') {
         $auth = requireRole(['administrator', 'author']);
         if (($auth['source'] ?? '') === 'users') {
-            $stmt = $pdo->prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ? LIMIT 1');
+            $stmt = $pdo->prepare('SELECT id, username, email, role, profile_image, created_at, updated_at FROM users WHERE id = ? LIMIT 1');
             $stmt->execute([(int) $auth['id']]);
             $user = $stmt->fetch();
             if (!$user) {
@@ -573,7 +574,7 @@ try {
             }
             $stmt = $pdo->prepare('UPDATE users SET username = ?, email = ? WHERE id = ?');
             $stmt->execute([$username, $email, (int) $auth['id']]);
-            $stmt = $pdo->prepare('SELECT id, username, email, role, created_at, updated_at FROM users WHERE id = ? LIMIT 1');
+            $stmt = $pdo->prepare('SELECT id, username, email, role, profile_image, created_at, updated_at FROM users WHERE id = ? LIMIT 1');
             $stmt->execute([(int) $auth['id']]);
             $updated = $stmt->fetch();
             if ($updated) {
@@ -642,9 +643,6 @@ try {
 
     if ($path === '/api/admin/profile/photo' && $method === 'POST') {
         $auth = requireRole(['administrator', 'author']);
-        if (($auth['source'] ?? '') === 'users') {
-            jsonResponse(['message' => 'Profile image upload is not available for this account'], 403);
-        }
         if (!isset($_FILES['image']) || !is_array($_FILES['image'])) {
             jsonResponse(['message' => 'Profile image is required'], 422);
         }
@@ -673,8 +671,13 @@ try {
         }
         $relativePath = '/uploads/admins/' . $filename;
         $profileImageUrl = buildUploadUrl($relativePath);
-        $stmt = $pdo->prepare('UPDATE admins SET profile_image = ? WHERE id = ?');
-        $stmt->execute([$profileImageUrl, (int) $auth['id']]);
+        if (($auth['source'] ?? '') === 'users') {
+            $stmt = $pdo->prepare('UPDATE users SET profile_image = ? WHERE id = ?');
+            $stmt->execute([$profileImageUrl, (int) $auth['id']]);
+        } else {
+            $stmt = $pdo->prepare('UPDATE admins SET profile_image = ? WHERE id = ?');
+            $stmt->execute([$profileImageUrl, (int) $auth['id']]);
+        }
         jsonResponse(['profile_image' => $profileImageUrl]);
     }
 

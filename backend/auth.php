@@ -342,6 +342,9 @@ function ensureUsersSchema(): void
     if (!hasColumn($pdo, 'users', 'role')) {
         $pdo->exec('ALTER TABLE users ADD COLUMN role VARCHAR(40) NOT NULL DEFAULT "subscriber" AFTER password');
     }
+    if (!hasColumn($pdo, 'users', 'profile_image')) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN profile_image VARCHAR(255) DEFAULT NULL AFTER password');
+    }
     if (!hasColumn($pdo, 'users', 'updated_at')) {
         $pdo->exec('ALTER TABLE users ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
     }
