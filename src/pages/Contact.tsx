@@ -120,7 +120,11 @@ const Contact = () => {
 
             {/* Contact Form */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-              <form onSubmit={handleSubmit} className="bg-card rounded-2xl border border-border p-6 md:p-8 space-y-4">
+              <form
+                id="contact-form"
+                onSubmit={handleSubmit}
+                className="bg-card rounded-2xl border border-border p-6 md:p-8 space-y-4"
+              >
                 <h3 className="font-display font-bold text-xl mb-2">Send Us a Message</h3>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
