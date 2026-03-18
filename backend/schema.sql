@@ -79,6 +79,20 @@ CREATE TABLE IF NOT EXISTS product_variations (
   CONSTRAINT fk_product_variations_term FOREIGN KEY (term_id) REFERENCES attribute_terms(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS coupons (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  discount_type ENUM('percentage','fixed') NOT NULL,
+  discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  expiry_date DATE DEFAULT NULL,
+  usage_limit INT DEFAULT NULL,
+  used_count INT NOT NULL DEFAULT 0,
+  status ENUM('Active','Inactive') NOT NULL DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_id INT NULL,
@@ -87,6 +101,12 @@ CREATE TABLE IF NOT EXISTS orders (
   customer_phone VARCHAR(20) NOT NULL,
   customer_address TEXT NOT NULL,
   customer_pincode VARCHAR(12) NOT NULL,
+  subtotal_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  coupon_id INT NULL,
+  coupon_code VARCHAR(50) DEFAULT NULL,
+  discount_type ENUM('percentage','fixed') DEFAULT NULL,
+  discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+  discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
   total_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
   order_status ENUM('Pending','Confirmed','Processing','Ready to Ship','Shipped','Delivered','Cancelled') NOT NULL DEFAULT 'Pending',
   payment_status ENUM('Pending','Paid','Failed','Refunded') NOT NULL DEFAULT 'Pending',
@@ -98,7 +118,8 @@ CREATE TABLE IF NOT EXISTS orders (
   tracking_url VARCHAR(255) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+  CONSTRAINT fk_orders_customer FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+  CONSTRAINT fk_orders_coupon FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS order_items (

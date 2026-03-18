@@ -10,11 +10,14 @@ import {
   removeFromCart,
   updateCartItemQuantity,
 } from "@/lib/cart";
+import { computeDeliveryCharge } from "@/lib/delivery";
 
 const Cart = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState(getCartDetailedItems());
   const [total, setTotal] = useState(getCartTotal());
+  const delivery = computeDeliveryCharge(total, { includeDiscounts: false });
+  const payableTotal = total + delivery.deliveryCharge;
 
   const syncCart = () => {
     setItems(getCartDetailedItems());
@@ -116,8 +119,19 @@ const Cart = () => {
                   <span>{items.length}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm mb-4">
-                  <span>Total</span>
-                  <span className="font-semibold">₹ {total}</span>
+                  <span>Subtotal</span>
+                  <span className="font-semibold">{"\u20B9"} {total}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span>Delivery</span>
+                  <span className="font-semibold">
+                    {delivery.deliveryCharge === 0 ? "Free" : `\u20B9 ${delivery.deliveryCharge}`}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">{delivery.message}</p>
+                <div className="flex items-center justify-between text-sm mb-4">
+                  <span>Payable</span>
+                  <span className="font-semibold">{"\u20B9"} {payableTotal}</span>
                 </div>
                 <Button className="w-full" onClick={() => navigate("/checkout/cart")}>
                   Proceed to Checkout

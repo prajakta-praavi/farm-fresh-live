@@ -100,6 +100,20 @@ export interface Order {
   items?: OrderItem[];
 }
 
+export interface Coupon {
+  id: number;
+  code: string;
+  discount_type: "percentage" | "fixed";
+  discount_value: number;
+  min_order_amount: number;
+  expiry_date?: string | null;
+  usage_limit?: number | null;
+  used_count: number;
+  status: "Active" | "Inactive";
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface FarmStayInquiry {
   id: number;
   full_name: string;

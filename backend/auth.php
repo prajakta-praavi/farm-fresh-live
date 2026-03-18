@@ -293,6 +293,24 @@ function ensureAuthSchema(): void
     if (!hasColumn($pdo, 'orders', 'tracking_url')) {
         $pdo->exec('ALTER TABLE orders ADD COLUMN tracking_url VARCHAR(255) DEFAULT NULL AFTER tracking_number');
     }
+    if (!hasColumn($pdo, 'orders', 'subtotal_amount')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN subtotal_amount DECIMAL(10,2) NOT NULL DEFAULT 0 AFTER customer_pincode');
+    }
+    if (!hasColumn($pdo, 'orders', 'coupon_id')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN coupon_id INT NULL AFTER subtotal_amount');
+    }
+    if (!hasColumn($pdo, 'orders', 'coupon_code')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN coupon_code VARCHAR(50) DEFAULT NULL AFTER coupon_id');
+    }
+    if (!hasColumn($pdo, 'orders', 'discount_type')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN discount_type ENUM("percentage","fixed") DEFAULT NULL AFTER coupon_code');
+    }
+    if (!hasColumn($pdo, 'orders', 'discount_value')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN discount_value DECIMAL(10,2) NOT NULL DEFAULT 0 AFTER discount_type');
+    }
+    if (!hasColumn($pdo, 'orders', 'discount_amount')) {
+        $pdo->exec('ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0 AFTER discount_value');
+    }
     $pdo->exec('
         ALTER TABLE orders
         MODIFY COLUMN order_status ENUM("Pending","Confirmed","Processing","Ready to Ship","Shipped","Delivered","Cancelled") NOT NULL DEFAULT "Pending"
@@ -311,6 +329,22 @@ function ensureAuthSchema(): void
             ALTER TABLE orders
             ADD CONSTRAINT fk_orders_customer
             FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+        ');
+    }
+
+    $couponFkStmt = $pdo->prepare('
+        SELECT COUNT(*)
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = "orders"
+          AND CONSTRAINT_NAME = "fk_orders_coupon"
+    ');
+    $couponFkStmt->execute();
+    if ((int) $couponFkStmt->fetchColumn() === 0 && hasTable($pdo, 'coupons')) {
+        $pdo->exec('
+            ALTER TABLE orders
+            ADD CONSTRAINT fk_orders_coupon
+            FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE SET NULL
         ');
     }
 }
@@ -666,6 +700,22 @@ function ensureVariationSchema(): void
           CONSTRAINT fk_product_variations_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
           CONSTRAINT fk_product_variations_attribute FOREIGN KEY (attribute_id) REFERENCES attributes(id) ON DELETE CASCADE,
           CONSTRAINT fk_product_variations_term FOREIGN KEY (term_id) REFERENCES attribute_terms(id) ON DELETE CASCADE
+        )
+    ');
+
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS coupons (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          code VARCHAR(50) NOT NULL UNIQUE,
+          discount_type ENUM("percentage","fixed") NOT NULL,
+          discount_value DECIMAL(10,2) NOT NULL DEFAULT 0,
+          min_order_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+          expiry_date DATE DEFAULT NULL,
+          usage_limit INT DEFAULT NULL,
+          used_count INT NOT NULL DEFAULT 0,
+          status ENUM("Active","Inactive") NOT NULL DEFAULT "Active",
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
     ');
 

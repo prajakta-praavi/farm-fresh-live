@@ -28,6 +28,7 @@ import AdminProfile from "@/admin/pages/AdminProfile";
 import AdminUsersAll from "@/admin/pages/AdminUsersAll";
 import AdminUsersAdd from "@/admin/pages/AdminUsersAdd";
 import AdminBlogs from "@/admin/pages/AdminBlogs";
+import AdminCoupons from "@/admin/pages/AdminCoupons";
 import AdminLayout from "@/admin/components/AdminLayout";
 import AdminProtectedRoute from "@/admin/components/AdminProtectedRoute";
 import CustomerLogin from "@/pages/CustomerLogin";
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="customers" element={<AdminCustomers />} />
               <Route path="attributes" element={<AdminAttributes />} />
               <Route path="blogs" element={<AdminBlogs />} />
+              <Route path="coupons" element={<AdminCoupons />} />
               <Route path="profile" element={<AdminProfile />} />
               <Route path="users" element={<AdminUsersAll />} />
               <Route path="users/add" element={<AdminUsersAdd />} />

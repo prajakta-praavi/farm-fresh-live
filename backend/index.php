@@ -26,6 +26,62 @@ $path = getPath();
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $body = parseJsonBody();
 
+function normalizeCouponCode(string $code): string
+{
+    return strtoupper(trim($code));
+}
+
+function couponIsExpired(?string $expiryDate): bool
+{
+    $expiry = trim((string) ($expiryDate ?? ''));
+    if ($expiry === '') {
+        return false;
+    }
+    return $expiry < date('Y-m-d');
+}
+
+function calculateCouponDiscount(string $type, float $value, float $subtotal): float
+{
+    if ($subtotal <= 0) {
+        return 0;
+    }
+    if ($type === 'percentage') {
+        return max(0, min($subtotal, ($subtotal * $value) / 100));
+    }
+    return max(0, min($subtotal, $value));
+}
+
+function validateCouponRow(array $coupon, float $subtotal): array
+{
+    $status = (string) ($coupon['status'] ?? 'Inactive');
+    if (strcasecmp($status, 'Active') !== 0) {
+        return ['valid' => false, 'message' => 'Coupon is inactive', 'discount' => 0];
+    }
+    if (couponIsExpired($coupon['expiry_date'] ?? null)) {
+        return ['valid' => false, 'message' => 'Coupon has expired', 'discount' => 0];
+    }
+    $usageLimit = (int) ($coupon['usage_limit'] ?? 0);
+    $usedCount = (int) ($coupon['used_count'] ?? 0);
+    if ($usageLimit > 0 && $usedCount >= $usageLimit) {
+        return ['valid' => false, 'message' => 'Coupon usage limit reached', 'discount' => 0];
+    }
+    $minOrder = (float) ($coupon['min_order_amount'] ?? 0);
+    if ($subtotal < $minOrder) {
+        return [
+            'valid' => false,
+            'message' => 'Minimum order amount for this coupon is Rs ' . number_format($minOrder, 2),
+            'discount' => 0,
+        ];
+    }
+    $type = (string) ($coupon['discount_type'] ?? '');
+    $value = (float) ($coupon['discount_value'] ?? 0);
+    $discount = calculateCouponDiscount($type, $value, $subtotal);
+    if ($discount <= 0) {
+        return ['valid' => false, 'message' => 'Coupon discount is not applicable', 'discount' => 0];
+    }
+    return ['valid' => true, 'message' => 'Coupon applied successfully', 'discount' => $discount];
+}
+
 function fileUploadErrorMessage(int $errorCode, string $missingFileMessage = 'Image file is required'): string
 {
     return match ($errorCode) {
@@ -1395,6 +1451,33 @@ try {
         jsonResponse($order);
     }
 
+    if ($path === '/api/coupons/validate' && $method === 'POST') {
+        $code = normalizeCouponCode((string) ($body['code'] ?? ''));
+        $subtotal = (float) ($body['subtotal'] ?? 0);
+        if ($code === '') {
+            jsonResponse(['message' => 'Coupon code is required'], 422);
+        }
+        $stmt = $pdo->prepare('SELECT * FROM coupons WHERE code = ? LIMIT 1');
+        $stmt->execute([$code]);
+        $coupon = $stmt->fetch();
+        if (!$coupon) {
+            jsonResponse(['message' => 'Coupon not found'], 404);
+        }
+        $validation = validateCouponRow($coupon, $subtotal);
+        if (!($validation['valid'] ?? false)) {
+            jsonResponse(['valid' => false, 'message' => $validation['message'] ?? 'Coupon not applicable'], 422);
+        }
+        jsonResponse([
+            'valid' => true,
+            'message' => $validation['message'] ?? 'Coupon applied successfully',
+            'discount_amount' => round((float) ($validation['discount'] ?? 0), 2),
+            'discount_type' => $coupon['discount_type'] ?? null,
+            'discount_value' => $coupon['discount_value'] ?? null,
+            'coupon_id' => $coupon['id'] ?? null,
+            'coupon_code' => $coupon['code'] ?? $code,
+        ]);
+    }
+
     if (preg_match('#^/api/orders/(\d+)/status$#', $path, $m) && $method === 'PATCH') {
         requireAdmin();
         $id = (int) $m[1];
@@ -1463,6 +1546,168 @@ try {
             jsonResponse(['message' => 'Order not found'], 404);
         }
         jsonResponse($row);
+    }
+
+    if ($path === '/api/admin/coupons' && $method === 'GET') {
+        requireAdmin();
+        $rows = $pdo->query('SELECT * FROM coupons ORDER BY created_at DESC')->fetchAll();
+        jsonResponse($rows);
+    }
+
+    if ($path === '/api/admin/coupons' && $method === 'POST') {
+        requireAdmin();
+        $code = normalizeCouponCode((string) ($body['code'] ?? ''));
+        if ($code === '') {
+            jsonResponse(['message' => 'Coupon code is required'], 422);
+        }
+        $discountType = strtolower(trim((string) ($body['discount_type'] ?? '')));
+        if (!in_array($discountType, ['percentage', 'fixed'], true)) {
+            jsonResponse(['message' => 'Discount type must be percentage or fixed'], 422);
+        }
+        $discountValue = (float) ($body['discount_value'] ?? 0);
+        if ($discountValue <= 0) {
+            jsonResponse(['message' => 'Discount value must be greater than 0'], 422);
+        }
+        if ($discountType === 'percentage' && $discountValue > 100) {
+            jsonResponse(['message' => 'Percentage discount cannot exceed 100'], 422);
+        }
+        $minOrder = max(0, (float) ($body['min_order_amount'] ?? 0));
+        $expiryDateRaw = trim((string) ($body['expiry_date'] ?? ''));
+        $expiryDate = $expiryDateRaw !== '' ? $expiryDateRaw : null;
+        if ($expiryDate !== null && !DateTime::createFromFormat('Y-m-d', $expiryDate)) {
+            jsonResponse(['message' => 'Invalid expiry date'], 422);
+        }
+        $usageLimitRaw = $body['usage_limit'] ?? null;
+        $usageLimit = $usageLimitRaw === null || $usageLimitRaw === '' ? null : (int) $usageLimitRaw;
+        if ($usageLimit !== null && $usageLimit < 0) {
+            jsonResponse(['message' => 'Usage limit cannot be negative'], 422);
+        }
+        $status = (string) ($body['status'] ?? 'Active');
+        if (!in_array($status, ['Active', 'Inactive'], true)) {
+            jsonResponse(['message' => 'Invalid status'], 422);
+        }
+        $existingStmt = $pdo->prepare('SELECT id FROM coupons WHERE code = ? LIMIT 1');
+        $existingStmt->execute([$code]);
+        if ($existingStmt->fetch()) {
+            jsonResponse(['message' => 'Coupon code already exists'], 409);
+        }
+        $stmt = $pdo->prepare('
+            INSERT INTO coupons (code, discount_type, discount_value, min_order_amount, expiry_date, usage_limit, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ');
+        $stmt->execute([
+            $code,
+            $discountType,
+            $discountValue,
+            $minOrder,
+            $expiryDate,
+            $usageLimit,
+            $status,
+        ]);
+        $id = (int) $pdo->lastInsertId();
+        $rowStmt = $pdo->prepare('SELECT * FROM coupons WHERE id = ?');
+        $rowStmt->execute([$id]);
+        jsonResponse($rowStmt->fetch() ?: []);
+    }
+
+    if (preg_match('#^/api/admin/coupons/(\d+)$#', $path, $m) && $method === 'PUT') {
+        requireAdmin();
+        $id = (int) $m[1];
+        $stmt = $pdo->prepare('SELECT * FROM coupons WHERE id = ?');
+        $stmt->execute([$id]);
+        $existing = $stmt->fetch();
+        if (!$existing) {
+            jsonResponse(['message' => 'Coupon not found'], 404);
+        }
+        $code = array_key_exists('code', $body) ? normalizeCouponCode((string) ($body['code'] ?? '')) : (string) $existing['code'];
+        if ($code === '') {
+            jsonResponse(['message' => 'Coupon code is required'], 422);
+        }
+        if ($code !== (string) $existing['code']) {
+            $dupStmt = $pdo->prepare('SELECT id FROM coupons WHERE code = ? LIMIT 1');
+            $dupStmt->execute([$code]);
+            if ($dupStmt->fetch()) {
+                jsonResponse(['message' => 'Coupon code already exists'], 409);
+            }
+        }
+        $discountType = array_key_exists('discount_type', $body)
+            ? strtolower(trim((string) ($body['discount_type'] ?? '')))
+            : (string) $existing['discount_type'];
+        if (!in_array($discountType, ['percentage', 'fixed'], true)) {
+            jsonResponse(['message' => 'Discount type must be percentage or fixed'], 422);
+        }
+        $discountValue = array_key_exists('discount_value', $body)
+            ? (float) ($body['discount_value'] ?? 0)
+            : (float) ($existing['discount_value'] ?? 0);
+        if ($discountValue <= 0) {
+            jsonResponse(['message' => 'Discount value must be greater than 0'], 422);
+        }
+        if ($discountType === 'percentage' && $discountValue > 100) {
+            jsonResponse(['message' => 'Percentage discount cannot exceed 100'], 422);
+        }
+        $minOrder = array_key_exists('min_order_amount', $body)
+            ? max(0, (float) ($body['min_order_amount'] ?? 0))
+            : (float) ($existing['min_order_amount'] ?? 0);
+        $expiryDateRaw = array_key_exists('expiry_date', $body)
+            ? trim((string) ($body['expiry_date'] ?? ''))
+            : (string) ($existing['expiry_date'] ?? '');
+        $expiryDate = $expiryDateRaw !== '' ? $expiryDateRaw : null;
+        if ($expiryDate !== null && !DateTime::createFromFormat('Y-m-d', $expiryDate)) {
+            jsonResponse(['message' => 'Invalid expiry date'], 422);
+        }
+        $usageLimitRaw = array_key_exists('usage_limit', $body) ? ($body['usage_limit'] ?? null) : $existing['usage_limit'];
+        $usageLimit = $usageLimitRaw === null || $usageLimitRaw === '' ? null : (int) $usageLimitRaw;
+        if ($usageLimit !== null && $usageLimit < 0) {
+            jsonResponse(['message' => 'Usage limit cannot be negative'], 422);
+        }
+        $status = array_key_exists('status', $body) ? (string) ($body['status'] ?? 'Active') : (string) ($existing['status'] ?? 'Active');
+        if (!in_array($status, ['Active', 'Inactive'], true)) {
+            jsonResponse(['message' => 'Invalid status'], 422);
+        }
+        $updateStmt = $pdo->prepare('
+            UPDATE coupons
+            SET code = ?, discount_type = ?, discount_value = ?, min_order_amount = ?, expiry_date = ?, usage_limit = ?, status = ?
+            WHERE id = ?
+        ');
+        $updateStmt->execute([
+            $code,
+            $discountType,
+            $discountValue,
+            $minOrder,
+            $expiryDate,
+            $usageLimit,
+            $status,
+            $id,
+        ]);
+        $rowStmt = $pdo->prepare('SELECT * FROM coupons WHERE id = ?');
+        $rowStmt->execute([$id]);
+        jsonResponse($rowStmt->fetch() ?: []);
+    }
+
+    if (preg_match('#^/api/admin/coupons/(\d+)/status$#', $path, $m) && $method === 'PATCH') {
+        requireAdmin();
+        $id = (int) $m[1];
+        $status = (string) ($body['status'] ?? '');
+        if (!in_array($status, ['Active', 'Inactive'], true)) {
+            jsonResponse(['message' => 'Invalid status'], 422);
+        }
+        $stmt = $pdo->prepare('UPDATE coupons SET status = ? WHERE id = ?');
+        $stmt->execute([$status, $id]);
+        $rowStmt = $pdo->prepare('SELECT * FROM coupons WHERE id = ?');
+        $rowStmt->execute([$id]);
+        $row = $rowStmt->fetch();
+        if (!$row) {
+            jsonResponse(['message' => 'Coupon not found'], 404);
+        }
+        jsonResponse($row);
+    }
+
+    if (preg_match('#^/api/admin/coupons/(\d+)$#', $path, $m) && $method === 'DELETE') {
+        requireAdmin();
+        $id = (int) $m[1];
+        $stmt = $pdo->prepare('DELETE FROM coupons WHERE id = ?');
+        $stmt->execute([$id]);
+        jsonResponse(['success' => true]);
     }
 
     if ($path === '/api/admin/customers' && $method === 'GET') {
@@ -1903,14 +2148,44 @@ try {
                 }
             }
         }
+        $computedSubtotal = 0.0;
+        foreach ($items as $item) {
+            $qty = max(0, (int) ($item['quantity'] ?? 0));
+            $unitPrice = (float) ($item['unit_price'] ?? 0);
+            $computedSubtotal += $unitPrice * $qty;
+        }
+        $couponCode = normalizeCouponCode((string) ($body['coupon_code'] ?? ''));
+        $couponId = null;
+        $discountType = null;
+        $discountValue = 0.0;
+        $discountAmount = 0.0;
         try {
             $pdo->beginTransaction();
+            if ($couponCode !== '') {
+                $couponStmt = $pdo->prepare('SELECT * FROM coupons WHERE code = ? LIMIT 1 FOR UPDATE');
+                $couponStmt->execute([$couponCode]);
+                $coupon = $couponStmt->fetch();
+                if (!$coupon) {
+                    throw new RuntimeException('Invalid coupon code', 422);
+                }
+                $validation = validateCouponRow($coupon, $computedSubtotal);
+                if (!($validation['valid'] ?? false)) {
+                    $message = (string) ($validation['message'] ?? 'Coupon not applicable');
+                    throw new RuntimeException($message, 422);
+                }
+                $discountAmount = round((float) ($validation['discount'] ?? 0), 2);
+                $discountType = (string) ($coupon['discount_type'] ?? null);
+                $discountValue = (float) ($coupon['discount_value'] ?? 0);
+                $couponId = (int) ($coupon['id'] ?? 0);
+                $couponCode = (string) ($coupon['code'] ?? $couponCode);
+            }
             $stmt = $pdo->prepare('
                 INSERT INTO orders (
                     customer_id,
                     customer_name, customer_email, customer_phone, customer_address, customer_pincode,
+                    subtotal_amount, coupon_id, coupon_code, discount_type, discount_value, discount_amount,
                     total_amount, payment_status, order_status, razorpay_order_id, razorpay_payment_id, razorpay_signature, invoice_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ');
             $stmt->execute([
                 $customerId && $customerId > 0 ? $customerId : null,
@@ -1919,6 +2194,12 @@ try {
                 trim((string) ($body['customer_phone'] ?? '')),
                 trim((string) ($body['customer_address'] ?? '')),
                 trim((string) ($body['customer_pincode'] ?? '')),
+                $computedSubtotal,
+                $couponId ?: null,
+                $couponCode !== '' ? $couponCode : null,
+                $discountType,
+                $discountValue,
+                $discountAmount,
                 (float) ($body['total_amount'] ?? 0),
                 (string) ($body['payment_status'] ?? 'Pending'),
                 (string) ($body['order_status'] ?? 'Pending'),
@@ -1928,6 +2209,10 @@ try {
                 null,
             ]);
             $orderId = (int) $pdo->lastInsertId();
+            if ($couponId) {
+                $couponUpdateStmt = $pdo->prepare('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?');
+                $couponUpdateStmt->execute([$couponId]);
+            }
             $invoiceId = trim((string) ($body['invoice_id'] ?? ''));
             if ($invoiceId === '') {
                 $invoiceId = generateInvoiceId($orderId);

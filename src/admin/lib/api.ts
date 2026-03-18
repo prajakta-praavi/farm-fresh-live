@@ -5,6 +5,7 @@ import type {
   BlogCategory,
   BlogPost,
   Category,
+  Coupon,
   CustomerRecord,
   DashboardOverview,
   FarmStayInquiry,
@@ -277,6 +278,22 @@ export const adminApi = {
         ...(tracking || {}),
       }),
     }),
+
+  getCoupons: () => request<Coupon[]>("/api/admin/coupons"),
+  addCoupon: (payload: {
+    code: string;
+    discount_type: Coupon["discount_type"];
+    discount_value: number;
+    min_order_amount?: number;
+    expiry_date?: string | null;
+    usage_limit?: number | null;
+    status?: Coupon["status"];
+  }) => request<Coupon>("/api/admin/coupons", { method: "POST", body: JSON.stringify(payload) }),
+  updateCoupon: (id: number, payload: Partial<Coupon>) =>
+    request<Coupon>(`/api/admin/coupons/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  updateCouponStatus: (id: number, status: Coupon["status"]) =>
+    request<Coupon>(`/api/admin/coupons/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  deleteCoupon: (id: number) => request<{ success: boolean }>(`/api/admin/coupons/${id}`, { method: "DELETE" }),
 
   getFarmStayInquiries: () => request<FarmStayInquiry[]>("/api/farm-stay-inquiries"),
   updateFarmStayStatus: (id: number, status: FarmStayInquiry["status"]) =>

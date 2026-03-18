@@ -12,6 +12,7 @@ const navItems = [
   { to: "/admin/orders", label: "Orders" },
   { to: "/admin/customers", label: "Customers" },
   { to: "/admin/attributes", label: "Attributes" },
+  { to: "/admin/coupons", label: "Coupons" },
   { to: "/admin/blogs", label: "Blogs" },
   { to: "/admin/farm-stay", label: "Farm Stay" },
 ];

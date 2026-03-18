@@ -7,6 +7,7 @@ import PageBreadcrumb from "@/components/PageBreadcrumb";
 import checkoutBreadcrumbImage from "@/assets/checkout_breadcrub.webp";
 import { products } from "@/data/mockData";
 import { getCartDetailedItems, clearCart } from "@/lib/cart";
+import { computeDeliveryCharge } from "@/lib/delivery";
 import { openRazorpayCheckout } from "@/lib/razorpay";
 import { getCachedPublicCatalog, getPublicProductById, getPublicProducts, type PublicProduct } from "@/lib/public-api";
 import { customerApi } from "@/lib/customerApi";
@@ -34,6 +35,14 @@ interface CheckoutOrderItem {
   product_name: string;
   quantity: number;
   unit_price: number;
+}
+
+interface CouponInfo {
+  code: string;
+  discountAmount: number;
+  discountType?: "percentage" | "fixed";
+  discountValue?: number;
+  message?: string;
 }
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
@@ -109,6 +118,26 @@ const createRazorpayOrder = async (
   return { response, data };
 };
 
+const validateCouponRequest = async (
+  baseUrl: string,
+  payload: { code: string; subtotal: number }
+) => {
+  const response = await fetch(`${baseUrl}/api/coupons/validate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    message?: string;
+    discount_amount?: number;
+    discount_type?: "percentage" | "fixed";
+    discount_value?: number;
+    coupon_code?: string;
+  };
+  return { response, data };
+};
+
 const Checkout = () => {
   const { target } = useParams();
   const [searchParams] = useSearchParams();
@@ -119,6 +148,11 @@ const Checkout = () => {
   const { toast } = useToast();
   const [successOpen, setSuccessOpen] = useState(false);
   const [successOrderId, setSuccessOrderId] = useState("");
+  const [couponCode, setCouponCode] = useState("");
+  const [couponInfo, setCouponInfo] = useState<CouponInfo | null>(null);
+  const [couponNotice, setCouponNotice] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [form, setForm] = useState<CheckoutFormState>({
     fullName: "",
     email: "",
@@ -201,6 +235,8 @@ const Checkout = () => {
         subtotal: totalSubtotal,
         gstAmount: totalGst,
         totalAmount,
+        deliveryCharge: 0,
+        deliveryMessage: "",
         backTo: "/stay",
         orderItems: [
           {
@@ -245,12 +281,15 @@ const Checkout = () => {
         (sum, item) => sum + ((item.unit_price * item.quantity * Number(item.gst_rate || 0)) / 100),
         0
       );
+      const delivery = computeDeliveryCharge(subtotal, { includeDiscounts: false });
       return {
         title: `Cart Checkout (${cartItems.length} items)`,
         productName: cartItems.map((item) => item.product.name).join(", "),
         subtotal,
         gstAmount,
-        totalAmount: subtotal + gstAmount,
+        deliveryCharge: delivery.deliveryCharge,
+        deliveryMessage: delivery.message,
+        totalAmount: subtotal + gstAmount + delivery.deliveryCharge,
         backTo: "/cart",
         orderItems,
       };
@@ -275,12 +314,15 @@ const Checkout = () => {
     const selectedPrice = selectedVariation ? Number(selectedVariation.price) : Number(product.price);
     const gstRate = resolveGstRate(product.name, Number(product.gstRate || 0));
     const gstAmount = (selectedPrice * gstRate) / 100;
+    const delivery = computeDeliveryCharge(selectedPrice, { includeDiscounts: false });
     return {
       title: "Checkout",
       productName: `${product.name} (${selectedLabel})`,
       subtotal: selectedPrice,
       gstAmount,
-      totalAmount: selectedPrice + gstAmount,
+      deliveryCharge: delivery.deliveryCharge,
+      deliveryMessage: delivery.message,
+      totalAmount: selectedPrice + gstAmount + delivery.deliveryCharge,
       backTo: `/product/${product.id}`,
       orderItems: [
         {
@@ -317,6 +359,10 @@ const Checkout = () => {
     );
   }
 
+  const discountAmount = couponInfo?.discountAmount ?? 0;
+  const payableTotal = Math.max(0, checkoutData.totalAmount - discountAmount);
+  const canApplyCoupon = target !== "stay";
+
   const appliedGstRates = Array.from(
     new Set(
       checkoutData.orderItems
@@ -334,6 +380,62 @@ const Checkout = () => {
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setForm((prev) => ({ ...prev, [key]: event.target.value }));
     };
+
+  const onApplyCoupon = async () => {
+    if (!canApplyCoupon) return;
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      setCouponError("Please enter a coupon code.");
+      setCouponNotice("");
+      return;
+    }
+    setIsApplyingCoupon(true);
+    setCouponError("");
+    setCouponNotice("");
+    try {
+      const payload = { code, subtotal: checkoutData.subtotal };
+      let result = await validateCouponRequest(API_BASE_URL, payload);
+      const shouldTryFallback =
+        (!result.response.ok &&
+          (result.response.status === 404 ||
+            (result.data.message || "").toLowerCase().includes("route not found"))) ||
+        !result.data;
+      if (shouldTryFallback && FALLBACK_API_BASE_URL && FALLBACK_API_BASE_URL !== API_BASE_URL) {
+        const fallbackResult = await validateCouponRequest(FALLBACK_API_BASE_URL, payload);
+        if (fallbackResult.response.ok) {
+          result = fallbackResult;
+        }
+      }
+      if (!result.response.ok) {
+        throw new Error(result.data.message || "Invalid coupon");
+      }
+      const discountAmountValue = Number(result.data.discount_amount || 0);
+      if (!Number.isFinite(discountAmountValue) || discountAmountValue <= 0) {
+        throw new Error("Coupon discount is not applicable.");
+      }
+      setCouponInfo({
+        code: result.data.coupon_code || code,
+        discountAmount: discountAmountValue,
+        discountType: result.data.discount_type,
+        discountValue: result.data.discount_value,
+        message: result.data.message,
+      });
+      setCouponNotice(result.data.message || "Coupon applied.");
+      setCouponError("");
+    } catch (error) {
+      setCouponInfo(null);
+      setCouponError(error instanceof Error ? error.message : "Failed to apply coupon");
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const onRemoveCoupon = () => {
+    setCouponInfo(null);
+    setCouponNotice("");
+    setCouponError("");
+    setCouponCode("");
+  };
 
   const handleCheckout = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -359,7 +461,7 @@ const Checkout = () => {
       }
       const invoiceId = buildInvoiceId();
       const orderPayload = {
-        amount: checkoutData.totalAmount,
+        amount: payableTotal,
         currency: "INR",
         customer_name: form.fullName,
         customer_email: form.email,
@@ -392,7 +494,7 @@ const Checkout = () => {
       }
 
       const paymentResponse = await openRazorpayCheckout({
-        amountInRupees: checkoutData.totalAmount,
+        amountInRupees: payableTotal,
         productName: checkoutData.productName,
         razorpayOrderId: razorpayOrderResult.data.id,
         invoiceId,
@@ -415,7 +517,11 @@ const Checkout = () => {
           customer_phone: form.phone,
           customer_address: form.address,
           customer_pincode: form.pincode,
-          total_amount: checkoutData.totalAmount,
+          total_amount: payableTotal,
+          coupon_code: couponInfo?.code || "",
+          discount_amount: couponInfo?.discountAmount || 0,
+          discount_type: couponInfo?.discountType || null,
+          discount_value: couponInfo?.discountValue || 0,
           payment_status: "Paid",
           order_status: "Pending",
           invoice_id: invoiceId,
@@ -563,6 +669,34 @@ const Checkout = () => {
                 />
               </div>
 
+              {canApplyCoupon ? (
+                <div className="rounded-lg border border-border bg-white p-3">
+                  <label className="text-sm font-medium">Coupon Code</label>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm"
+                      placeholder="Enter coupon code"
+                      disabled={isApplyingCoupon}
+                    />
+                    {couponInfo ? (
+                      <Button type="button" variant="outline" onClick={onRemoveCoupon}>
+                        Remove
+                      </Button>
+                    ) : (
+                      <Button type="button" onClick={onApplyCoupon} disabled={isApplyingCoupon}>
+                        {isApplyingCoupon ? "Applying..." : "Apply"}
+                      </Button>
+                    )}
+                  </div>
+                  {couponNotice ? (
+                    <p className="mt-2 text-xs text-emerald-700">{couponNotice}</p>
+                  ) : null}
+                  {couponError ? <p className="mt-2 text-xs text-red-600">{couponError}</p> : null}
+                </div>
+              ) : null}
+
               <div className="rounded-lg bg-muted p-3 text-sm">
                 <p className="break-words">
                   <span className="font-semibold">Items:</span> {checkoutData.productName}
@@ -577,8 +711,25 @@ const Checkout = () => {
                 <p>
                   <span className="font-semibold">GST:</span> {"\u20B9"} {checkoutData.gstAmount.toFixed(2)}
                 </p>
+                {checkoutData.deliveryMessage ? (
+                  <>
+                    <p>
+                      <span className="font-semibold">Delivery:</span>{" "}
+                      {checkoutData.deliveryCharge === 0
+                        ? "Free"
+                        : `\u20B9 ${checkoutData.deliveryCharge.toFixed(2)}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{checkoutData.deliveryMessage}</p>
+                  </>
+                ) : null}
+                {discountAmount > 0 ? (
+                  <p>
+                    <span className="font-semibold">Discount:</span> - {"\u20B9"}{" "}
+                    {discountAmount.toFixed(2)}
+                  </p>
+                ) : null}
                 <p>
-                  <span className="font-semibold">Payable Amount:</span> {"\u20B9"} {checkoutData.totalAmount.toFixed(2)}
+                  <span className="font-semibold">Payable Amount:</span> {"\u20B9"} {payableTotal.toFixed(2)}
                 </p>
               </div>
 
