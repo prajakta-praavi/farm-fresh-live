@@ -38,7 +38,7 @@ import CustomerOrders from "@/pages/CustomerOrders";
 import CustomerProfile from "@/pages/CustomerProfile";
 import CustomerProtectedRoute from "@/components/customer/CustomerProtectedRoute";
 import CustomerLayout from "@/components/customer/CustomerLayout";
-import SeoManager from "@/components/SeoManager";
+import SeoManager, { SeoProvider } from "@/components/SeoManager";
 
 const queryClient = new QueryClient();
 
@@ -58,51 +58,53 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ScrollToTop />
-        <SeoManager />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/shop" element={<Shop />} />
-          <Route path="/stay" element={<Stay />} />
-          <Route path="/corporate-gifting" element={<CorporateGifting />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogDetails />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/product/:id" element={<ProductDetails />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout/:target" element={<Checkout />} />
-          <Route path="/track-order" element={<OrderTracking />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminProtectedRoute />}>
-            <Route element={<AdminLayout />}>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="products" element={<AdminProducts />} />
-              <Route path="orders" element={<AdminOrders />} />
-              <Route path="customers" element={<AdminCustomers />} />
-              <Route path="attributes" element={<AdminAttributes />} />
-              <Route path="blogs" element={<AdminBlogs />} />
-              <Route path="coupons" element={<AdminCoupons />} />
-              <Route path="profile" element={<AdminProfile />} />
-              <Route path="users" element={<AdminUsersAll />} />
-              <Route path="users/add" element={<AdminUsersAdd />} />
-              <Route path="users/profile" element={<AdminProfile />} />
-              <Route path="farm-stay" element={<AdminFarmStay />} />
+        <SeoProvider>
+          <ScrollToTop />
+          <SeoManager />
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/stay" element={<Stay />} />
+            <Route path="/corporate-gifting" element={<CorporateGifting />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogDetails />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/product/:id" element={<ProductDetails />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout/:target" element={<Checkout />} />
+            <Route path="/track-order" element={<OrderTracking />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={<AdminProtectedRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="customers" element={<AdminCustomers />} />
+                <Route path="attributes" element={<AdminAttributes />} />
+                <Route path="blogs" element={<AdminBlogs />} />
+                <Route path="coupons" element={<AdminCoupons />} />
+                <Route path="profile" element={<AdminProfile />} />
+                <Route path="users" element={<AdminUsersAll />} />
+                <Route path="users/add" element={<AdminUsersAdd />} />
+                <Route path="users/profile" element={<AdminProfile />} />
+                <Route path="farm-stay" element={<AdminFarmStay />} />
+              </Route>
             </Route>
-          </Route>
-          <Route path="/customer/login" element={<CustomerLogin />} />
-          <Route path="/customer/register" element={<CustomerRegister />} />
-          <Route path="/customer" element={<CustomerProtectedRoute />}>
-            <Route element={<CustomerLayout />}>
-              <Route index element={<Navigate to="/customer/dashboard" replace />} />
-              <Route path="dashboard" element={<CustomerDashboard />} />
-              <Route path="orders" element={<CustomerOrders />} />
-              <Route path="profile" element={<CustomerProfile />} />
+            <Route path="/customer/login" element={<CustomerLogin />} />
+            <Route path="/customer/register" element={<CustomerRegister />} />
+            <Route path="/customer" element={<CustomerProtectedRoute />}>
+              <Route element={<CustomerLayout />}>
+                <Route index element={<Navigate to="/customer/dashboard" replace />} />
+                <Route path="dashboard" element={<CustomerDashboard />} />
+                <Route path="orders" element={<CustomerOrders />} />
+                <Route path="profile" element={<CustomerProfile />} />
+              </Route>
             </Route>
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </SeoProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -242,6 +242,7 @@ export interface PublicBlogPost {
   image: string;
   category: string;
   date: string;
+  publishedAt?: string;
   readTime: string;
   content: string[];
 }
@@ -273,6 +274,13 @@ const formatBlogDate = (value?: string): string => {
   });
 };
 
+const toIsoDate = (value?: string): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString();
+};
+
 const normalizeBlogContent = (content?: string): string[] => {
   const text = (content || "").trim();
   if (!text) return [];
@@ -291,6 +299,7 @@ const normalizeApiBlog = (item: ApiBlogPost, baseUrl: string): PublicBlogPost =>
   image: makeAbsoluteUrl(baseUrl, item.image_url || ""),
   category: item.category || "General",
   date: formatBlogDate((item.publish_at || "").trim() || item.created_at) || "",
+  publishedAt: toIsoDate((item.publish_at || item.created_at || "").trim()),
   readTime: item.read_time || "5 min read",
   content: normalizeBlogContent(item.content),
 });
@@ -304,6 +313,7 @@ const mockBlogs: PublicBlogPost[] = mockBlogPosts.map((post) => ({
   image: post.image,
   category: post.category,
   date: post.date,
+  publishedAt: toIsoDate(post.date || ""),
   readTime: post.readTime,
   content: Array.isArray(post.content) ? post.content : [],
 }));

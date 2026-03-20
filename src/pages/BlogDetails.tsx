@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Clock, ArrowLeft } from "lucide-react";
 import Layout from "@/components/Layout";
@@ -6,6 +6,31 @@ import PageBreadcrumb from "@/components/PageBreadcrumb";
 import blogBreadcrumbImage from "@/assets/blog breadcrub.png";
 import blogFallbackImage from "@/assets/blog-1.png";
 import { getPublicBlogBySlug, type PublicBlogPost } from "@/lib/public-api";
+import { useSeo } from "@/components/SeoManager";
+
+const SITE_NAME = "Rushivan Agro";
+const SITE_URL = "https://www.rushivanagro.com";
+
+const toAbsoluteUrl = (value?: string | null) => {
+  const path = (value || "").trim();
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("/")) return `${SITE_URL}${path}`;
+  return `${SITE_URL}/${path.replace(/^\/+/, "")}`;
+};
+
+const toSeoDescription = (value: string) => {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (text.length <= 160) return text;
+  return `${text.slice(0, 157).trim()}...`;
+};
+
+const toIsoDate = (value?: string) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString();
+};
 
 const BlogDetails = () => {
   const { slug } = useParams();
@@ -21,6 +46,66 @@ const BlogDetails = () => {
       .then((data) => setPost(data))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  const seoData = useMemo(() => {
+    if (loading) {
+      return {
+        title: `Blog Article | ${SITE_NAME}`,
+        description: "Read the latest stories and insights from Rushivan Agro.",
+        ogType: "article" as const,
+      };
+    }
+
+    if (!post) {
+      return {
+        title: `Blog Not Found | ${SITE_NAME}`,
+        description: "The blog you are looking for does not exist.",
+        robots: "noindex, nofollow",
+        ogType: "article" as const,
+      };
+    }
+
+    const seoDescription = toSeoDescription(post.excerpt || post.content?.[0] || post.title);
+    const imageUrl = toAbsoluteUrl(post.image || blogFallbackImage) || `${SITE_URL}/favicon.ico`;
+    const articleUrl = `${SITE_URL}/blog/${post.slug}`;
+    const publishedAt = toIsoDate(post.publishedAt || post.date);
+
+    return {
+      title: `${post.title} | ${SITE_NAME}`,
+      description: seoDescription,
+      image: imageUrl,
+      ogType: "article" as const,
+      keywords: `${post.title}, ${post.category}, ${SITE_NAME} blog`,
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        headline: post.title,
+        description: seoDescription,
+        image: [imageUrl],
+        author: {
+          "@type": "Person",
+          name: post.author || SITE_NAME,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: SITE_NAME,
+          logo: {
+            "@type": "ImageObject",
+            url: `${SITE_URL}/favicon.ico`,
+          },
+        },
+        datePublished: publishedAt || undefined,
+        dateModified: publishedAt || undefined,
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": articleUrl,
+        },
+        articleSection: post.category,
+      },
+    };
+  }, [loading, post]);
+
+  useSeo(seoData);
 
   if (loading) {
     return (

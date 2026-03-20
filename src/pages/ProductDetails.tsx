@@ -6,6 +6,24 @@ import PageBreadcrumb from "@/components/PageBreadcrumb";
 import shopBreadcrumbImage from "@/assets/shop breadcrub main.png";
 import { addToCart } from "@/lib/cart";
 import { getPublicProductById, getPublicProducts, type PublicProduct, type PublicProductVariation } from "@/lib/public-api";
+import { useSeo } from "@/components/SeoManager";
+
+const SITE_NAME = "Rushivan Agro";
+const SITE_URL = "https://www.rushivanagro.com";
+
+const toAbsoluteUrl = (value?: string | null) => {
+  const path = (value || "").trim();
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("/")) return `${SITE_URL}${path}`;
+  return `${SITE_URL}/${path.replace(/^\/+/, "")}`;
+};
+
+const toSeoDescription = (value: string) => {
+  const text = value.replace(/\s+/g, " ").trim();
+  if (text.length <= 160) return text;
+  return `${text.slice(0, 157).trim()}...`;
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -52,6 +70,56 @@ const ProductDetails = () => {
     const otherProducts = allProducts.filter((item) => item.id !== product.id && item.category !== product.category);
     return [...sameCategory, ...otherProducts].slice(0, 4);
   }, [allProducts, product]);
+
+  const seoData = useMemo(() => {
+    if (!product) {
+      return {
+        title: `Product Details | ${SITE_NAME}`,
+        description: "Browse farm-fresh products from Rushivan Agro.",
+        ogType: "product" as const,
+      };
+    }
+
+    const baseDescription =
+      product.description?.trim() ||
+      `${product.name} is sourced directly from our farm under strict hygiene and quality standards. This product is delivered fresh and carefully packed for daily use.`;
+    const seoDescription = toSeoDescription(baseDescription);
+    const imageUrl = toAbsoluteUrl(product.image) || `${SITE_URL}/favicon.ico`;
+    const displayPrice = selectedVariation ? selectedVariation.price : product.price;
+    const availableStock = selectedVariation ? selectedVariation.stock : Number(product.stockQuantity || 0);
+    const productUrl = `${SITE_URL}/product/${product.id}`;
+
+    return {
+      title: `${product.name} | ${SITE_NAME}`,
+      description: seoDescription,
+      image: imageUrl,
+      ogType: "product" as const,
+      keywords: `${product.name}, ${product.category}, farm fresh products, ${SITE_NAME}`,
+      structuredData: {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        image: [imageUrl],
+        description: seoDescription,
+        category: product.category,
+        brand: {
+          "@type": "Brand",
+          name: SITE_NAME,
+        },
+        sku: selectedVariation?.sku || undefined,
+        offers: {
+          "@type": "Offer",
+          url: productUrl,
+          priceCurrency: "INR",
+          price: displayPrice,
+          availability: availableStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+        },
+      },
+    };
+  }, [product, selectedVariation]);
+
+  useSeo(seoData);
 
   if (!product) {
     return (

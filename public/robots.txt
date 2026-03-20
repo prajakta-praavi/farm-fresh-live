@@ -2,5 +2,8 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /customer
+Disallow: /cart
+Disallow: /checkout
+Disallow: /track-order
 
 Sitemap: https://www.rushivanagro.com/sitemap.xml

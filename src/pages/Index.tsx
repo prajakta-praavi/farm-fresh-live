@@ -115,10 +115,6 @@ const Index = () => {
   const currentSlide = bannerSlides[activeBanner];
 
   useEffect(() => {
-    document.title = "Rushivan Aagro | Pure by Nature, Rooted in Tradition.";
-  }, []);
-
-  useEffect(() => {
     getPublicProducts()
       .then((items) => {
         if (Array.isArray(items) && items.length > 0) {
