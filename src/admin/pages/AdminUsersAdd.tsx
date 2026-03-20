@@ -8,7 +8,7 @@ const AdminUsersAdd = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("subscriber");
+  const [role, setRole] = useState<UserRole>("administrator");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +23,7 @@ const AdminUsersAdd = () => {
       setUsername("");
       setEmail("");
       setPassword("");
-      setRole("subscriber");
+      setRole("administrator");
       setMessage("User created successfully.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create user");

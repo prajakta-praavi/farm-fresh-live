@@ -258,12 +258,24 @@ interface ApiBlogPost {
   read_time?: string;
   publish_at?: string | null;
   created_at?: string;
+  updated_at?: string;
   content?: string;
 }
 
+const normalizeDateInput = (value?: string): string => {
+  const raw = (value || "").trim();
+  if (!raw) return "";
+  if (raw.includes("T")) return raw;
+  if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(raw)) {
+    return raw.replace(" ", "T");
+  }
+  return raw;
+};
+
 const formatBlogDate = (value?: string): string => {
-  if (!value) return "";
-  const date = new Date(value);
+  const normalized = normalizeDateInput(value);
+  if (!normalized) return "";
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleString("en-US", {
     month: "short",
@@ -275,10 +287,21 @@ const formatBlogDate = (value?: string): string => {
 };
 
 const toIsoDate = (value?: string): string => {
-  if (!value) return "";
-  const date = new Date(value);
+  const normalized = normalizeDateInput(value);
+  if (!normalized) return "";
+  const date = new Date(normalized);
   if (Number.isNaN(date.getTime())) return "";
   return date.toISOString();
+};
+
+const addCacheBuster = (url: string, version?: string | null): string => {
+  const cleanUrl = (url || "").trim();
+  if (!cleanUrl) return "";
+  const normalized = normalizeDateInput(version || "");
+  const parsed = normalized ? Date.parse(normalized) : NaN;
+  if (Number.isNaN(parsed)) return cleanUrl;
+  const stamp = String(parsed);
+  return cleanUrl.includes("?") ? `${cleanUrl}&v=${stamp}` : `${cleanUrl}?v=${stamp}`;
 };
 
 const normalizeBlogContent = (content?: string): string[] => {
@@ -290,19 +313,23 @@ const normalizeBlogContent = (content?: string): string[] => {
     .filter(Boolean);
 };
 
-const normalizeApiBlog = (item: ApiBlogPost, baseUrl: string): PublicBlogPost => ({
+const normalizeApiBlog = (item: ApiBlogPost, baseUrl: string): PublicBlogPost => {
+  const imageUrl = makeAbsoluteUrl(baseUrl, item.image_url || "");
+  const versionHint = (item.updated_at || item.publish_at || item.created_at || "").trim();
+  return {
   id: Number(item.id),
   slug: item.slug || "",
   title: item.title || "",
   author: (item.author_name || "").trim() || "Rushivan Aagro",
   excerpt: item.excerpt || "",
-  image: makeAbsoluteUrl(baseUrl, item.image_url || ""),
+  image: addCacheBuster(imageUrl, versionHint),
   category: item.category || "General",
   date: formatBlogDate((item.publish_at || "").trim() || item.created_at) || "",
   publishedAt: toIsoDate((item.publish_at || item.created_at || "").trim()),
   readTime: item.read_time || "5 min read",
   content: normalizeBlogContent(item.content),
-});
+  };
+};
 
 const mockBlogs: PublicBlogPost[] = mockBlogPosts.map((post) => ({
   id: post.id,

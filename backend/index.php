@@ -1815,7 +1815,7 @@ try {
         $username = trim((string) ($body['username'] ?? ''));
         $email = strtolower(trim((string) ($body['email'] ?? '')));
         $password = (string) ($body['password'] ?? '');
-        $role = strtolower(trim((string) ($body['role'] ?? 'subscriber')));
+        $role = strtolower(trim((string) ($body['role'] ?? 'administrator')));
         $allowedRoles = ['administrator', 'author', 'subscriber'];
 
         if ($username === '' || $email === '' || $password === '') {

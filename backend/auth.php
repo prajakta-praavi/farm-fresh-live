@@ -505,12 +505,6 @@ function ensureDefaultProducts(): void
         INSERT INTO products (category_id, name, sku, description, image_url, price, stock_quantity, product_status, unit, hsn_code, gst_rate, is_active)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     ');
-    $updateStmt = $pdo->prepare('
-        UPDATE products
-        SET hsn_code = ?, gst_rate = ?, image_url = ?
-        WHERE id = ?
-    ');
-
     foreach ($products as $item) {
         $categoryKey = strtolower((string) $item['category']);
         $categoryId = $categoryMap[$categoryKey] ?? 0;
@@ -521,12 +515,6 @@ function ensureDefaultProducts(): void
         $existsStmt->execute([(string) $item['name']]);
         $existing = $existsStmt->fetch();
         if ($existing) {
-            $updateStmt->execute([
-                (string) $item['hsn_code'],
-                (float) $item['gst_rate'],
-                (string) $item['image_url'],
-                (int) $existing['id'],
-            ]);
             continue;
         }
         $stmt->execute([
