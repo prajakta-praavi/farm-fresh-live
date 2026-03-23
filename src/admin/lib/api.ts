@@ -20,6 +20,11 @@ import type {
 import { clearAdminSession, getAdminToken } from "@/admin/lib/auth";
 
 const CONFIGURED_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const CONFIGURED_API_CANDIDATES = CONFIGURED_API_BASE_URL
+  ? CONFIGURED_API_BASE_URL.endsWith("/index.php")
+    ? [CONFIGURED_API_BASE_URL]
+    : [`${CONFIGURED_API_BASE_URL}/index.php`, CONFIGURED_API_BASE_URL]
+  : [];
 const FALLBACK_API_BASE_URLS =
   typeof window !== "undefined"
     ? [
@@ -37,10 +42,17 @@ const FALLBACK_API_BASE_URLS =
       ]
     : [];
 const API_BASE_CANDIDATES = Array.from(
-  new Set([CONFIGURED_API_BASE_URL, ...FALLBACK_API_BASE_URLS].filter(Boolean))
+  new Set([...CONFIGURED_API_CANDIDATES, ...FALLBACK_API_BASE_URLS].filter(Boolean))
 );
 const buildUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
 const NON_RETRYABLE_ERROR = "NON_RETRYABLE_HTTP_ERROR";
+const isJsonResponse = (response: Response): boolean =>
+  (response.headers.get("content-type") || "").toLowerCase().includes("application/json");
+const looksLikeHtmlPayload = (payload: unknown): boolean => {
+  if (!payload || typeof payload !== "object") return false;
+  const raw = String((payload as { _raw?: string })._raw || "").trim().toLowerCase();
+  return raw.startsWith("<!doctype") || raw.startsWith("<html");
+};
 
 async function parseJsonResponse(response: Response): Promise<unknown> {
   const raw = await response.text();
@@ -72,7 +84,11 @@ const isRouteNotFound = (response: Response, payload: unknown): boolean => {
   if (response.status === 404) return true;
   if (!payload || typeof payload !== "object") return false;
   const message = String((payload as { message?: string }).message || "").toLowerCase();
-  return message.includes("route not found");
+  if (message.includes("route not found") || message.includes("not found")) {
+    return true;
+  }
+  const raw = String((payload as { _raw?: string })._raw || "").toLowerCase();
+  return raw.includes("not found") || raw.includes("404");
 };
 
 const shouldTryNextBase = (response: Response, payload: unknown): boolean => {
@@ -101,6 +117,14 @@ async function request<T>(path: string, init?: RequestInit, withAuth = true): Pr
 
       const json = await parseJsonResponse(response);
       if (response.ok) {
+        const isJson = isJsonResponse(response);
+        if (!isJson && looksLikeHtmlPayload(json)) {
+          const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
+          if (!isLastCandidate) {
+            continue;
+          }
+          throw new Error("Request failed (non-JSON response)");
+        }
         return json as T;
       }
 
@@ -144,6 +168,14 @@ async function uploadRequest<T>(path: string, formData: FormData, defaultMessage
 
       const json = await parseJsonResponse(response);
       if (response.ok) {
+        const isJson = isJsonResponse(response);
+        if (!isJson && looksLikeHtmlPayload(json)) {
+          const isLastCandidate = baseUrl === API_BASE_CANDIDATES[API_BASE_CANDIDATES.length - 1];
+          if (!isLastCandidate) {
+            continue;
+          }
+          throw new Error(`${defaultMessage} (non-JSON response)`);
+        }
         return json as T;
       }
 

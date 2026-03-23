@@ -270,9 +270,9 @@ const AdminProducts = () => {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Product Management</h1>
-      <form onSubmit={onSubmit} className="rounded-xl border bg-white p-4 space-y-4">
+      <form onSubmit={onSubmit} className="rounded-xl border bg-white p-4 sm:p-6 space-y-4">
         <h2 className="font-semibold">{isEdit ? "Edit Product" : "Add New Product"}</h2>
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Input placeholder="Product name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
           <Input placeholder="SKU (optional)" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} />
           <Input
@@ -284,7 +284,7 @@ const AdminProducts = () => {
             required
           />
           <select
-            className="h-10 rounded-md border px-3 text-sm"
+            className="h-10 w-full rounded-md border px-3 text-sm"
             value={form.category_id}
             onChange={(e) => setForm((p) => ({ ...p, category_id: e.target.value }))}
             required
@@ -318,9 +318,9 @@ const AdminProducts = () => {
             placeholder="Image URL (uploaded path)"
             value={form.image_url}
             onChange={(e) => setForm((p) => ({ ...p, image_url: e.target.value }))}
-            className="md:col-span-2"
+            className="sm:col-span-2"
           />
-          <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+          <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
             <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={onImagePick} />
             <Button type="button" variant="outline" onClick={() => imageInputRef.current?.click()} disabled={uploading}>
               {uploading ? "Uploading..." : "Upload Image"}
@@ -328,7 +328,7 @@ const AdminProducts = () => {
             {form.image_url ? <span className="text-xs text-slate-600 break-all">{form.image_url}</span> : null}
           </div>
           {form.image_url ? (
-            <div className="md:col-span-2">
+            <div className="sm:col-span-2">
               <img src={form.image_url} alt="Product preview" className="h-20 w-20 rounded-md border object-cover" />
             </div>
           ) : null}
@@ -336,7 +336,7 @@ const AdminProducts = () => {
             placeholder="Description"
             value={form.description}
             onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-            className="md:col-span-2"
+            className="sm:col-span-2"
           />
         </div>
 
@@ -447,12 +447,12 @@ const AdminProducts = () => {
         {categories.length === 0 ? (
           <p className="text-xs text-amber-700">Using default categories because API categories are empty.</p>
         ) : null}
-        <div className="flex gap-2">
-          <Button type="submit" disabled={saving}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="submit" disabled={saving} className="w-full sm:w-auto">
             {saving ? "Saving..." : isEdit ? "Update Product" : "Add Product"}
           </Button>
           {isEdit ? (
-            <Button type="button" variant="outline" onClick={resetEditor}>
+            <Button type="button" variant="outline" onClick={resetEditor} className="w-full sm:w-auto">
               Cancel Edit
             </Button>
           ) : null}

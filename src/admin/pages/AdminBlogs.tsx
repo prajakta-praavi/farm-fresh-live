@@ -156,6 +156,15 @@ const AdminBlogs = () => {
     setUploading(true);
     setError("");
     try {
+      const maxSize = 5 * 1024 * 1024;
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";
+      const allowed = new Set(["jpg", "jpeg", "png", "webp"]);
+      if (!allowed.has(extension)) {
+        throw new Error("Only jpg, jpeg, png, webp files are allowed");
+      }
+      if (file.size <= 0 || file.size > maxSize) {
+        throw new Error("Image must be between 1 byte and 5MB");
+      }
       const result = await adminApi.uploadProductImage(file);
       setForm((prev) => ({ ...prev, image_url: result.image_url }));
     } catch (err) {
