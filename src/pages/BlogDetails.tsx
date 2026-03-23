@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Clock, ArrowLeft } from "lucide-react";
+import { Clock, ArrowLeft, User } from "lucide-react";
 import Layout from "@/components/Layout";
 import PageBreadcrumb from "@/components/PageBreadcrumb";
 import blogBreadcrumbImage from "@/assets/blog breadcrub.png";
 import blogFallbackImage from "@/assets/blog-1.png";
-import { getPublicBlogBySlug, type PublicBlogPost } from "@/lib/public-api";
+import { getPublicBlogBySlug, getPublicBlogs, type PublicBlogPost } from "@/lib/public-api";
 import { useSeo } from "@/components/SeoManager";
 
 const SITE_NAME = "Rushivan Agro";
@@ -35,6 +35,7 @@ const toIsoDate = (value?: string) => {
 const BlogDetails = () => {
   const { slug } = useParams();
   const [post, setPost] = useState<PublicBlogPost | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<PublicBlogPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,9 +43,22 @@ const BlogDetails = () => {
       setLoading(false);
       return;
     }
-    getPublicBlogBySlug(slug)
-      .then((data) => setPost(data))
-      .finally(() => setLoading(false));
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const [postData, allBlogs] = await Promise.all([getPublicBlogBySlug(slug), getPublicBlogs()]);
+        if (!isMounted) return;
+        setPost(postData);
+        const filtered = (allBlogs || []).filter((item) => item.slug !== slug);
+        setRelatedPosts(filtered.slice(0, 3));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
 
   const seoData = useMemo(() => {
@@ -151,7 +165,6 @@ const BlogDetails = () => {
             <h1 className="mb-5 text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground">
               {post.title}
             </h1>
-            <p className="mb-2 text-sm text-muted-foreground">By {post.author}</p>
             <img
               src={post.image || blogFallbackImage}
               alt={post.title}
@@ -163,10 +176,18 @@ const BlogDetails = () => {
                 }
               }}
             />
-            <div className="mb-4 flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
-                {post.category}
-              </span>
+            <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-primary/10 px-3 py-1 font-medium text-primary">
+                  {post.category}
+                </span>
+                {post.author ? (
+                  <span className="flex items-center gap-1 font-medium text-slate-700">
+                    <User className="h-3.5 w-3.5" />
+                    {post.author}
+                  </span>
+                ) : null}
+              </div>
               <span className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 {post.date || "Published recently"}
@@ -180,6 +201,50 @@ const BlogDetails = () => {
                 </p>
               ))}
             </div>
+
+            {relatedPosts.length > 0 ? (
+              <div className="mt-10">
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-display font-semibold text-foreground">Related Blogs</h2>
+                  <Link to="/blog" className="text-sm font-semibold text-primary">
+                    View all
+                  </Link>
+                </div>
+                <div className="grid gap-5 md:grid-cols-3">
+                  {relatedPosts.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/blog/${item.slug}`}
+                      className="group rounded-2xl border bg-white p-3 transition-shadow hover:shadow-md"
+                    >
+                      <img
+                        src={item.image || blogFallbackImage}
+                        alt={item.title}
+                        className="mb-3 h-52 w-full rounded-xl object-cover sm:h-56"
+                        onError={(event) => {
+                          const target = event.currentTarget;
+                          if (target.src !== blogFallbackImage) {
+                            target.src = blogFallbackImage;
+                          }
+                        }}
+                      />
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-primary">{item.category}</p>
+                        <h3 className="line-clamp-2 text-base font-semibold text-foreground group-hover:text-primary">
+                          {item.title}
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <User className="h-3.5 w-3.5" />
+                          <span>{item.author}</span>
+                          <span>•</span>
+                          <span>{item.date}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
