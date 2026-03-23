@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { adminApi } from "@/admin/lib/api";
-import type { Attribute, AttributeTerm, Category, Product, ProductVariation, StockMovement } from "@/admin/types";
+import type { Attribute, AttributeTerm, Category, Product, ProductVariation } from "@/admin/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -71,7 +71,6 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [termsByAttribute, setTermsByAttribute] = useState<Record<number, AttributeTerm[]>>({});
   const [variations, setVariations] = useState<VariationRow[]>([]);
   const [form, setForm] = useState<ProductForm>(defaultForm);
@@ -89,16 +88,14 @@ const AdminProducts = () => {
   };
 
   const load = async () => {
-    const [productsData, categoriesData, attributesData, stockMovementData] = await Promise.all([
+    const [productsData, categoriesData, attributesData] = await Promise.all([
       adminApi.getProducts(),
       adminApi.getCategories(),
       adminApi.getAttributes(),
-      adminApi.getStockMovements(),
     ]);
     setProducts(Array.isArray(productsData) ? productsData : []);
     setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     setAttributes(Array.isArray(attributesData) ? attributesData : []);
-    setStockMovements(Array.isArray(stockMovementData) ? stockMovementData : []);
   };
 
   useEffect(() => {
@@ -506,42 +503,7 @@ const AdminProducts = () => {
         </table>
       </div>
 
-      <div className="rounded-xl border bg-white overflow-x-auto">
-        <div className="p-4 border-b">
-          <h2 className="font-semibold">Recent Stock Changes</h2>
-        </div>
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-left">
-            <tr>
-              <th className="p-3">Date</th>
-              <th className="p-3">Product</th>
-              <th className="p-3">Type</th>
-              <th className="p-3">Delta</th>
-              <th className="p-3">Previous</th>
-              <th className="p-3">New</th>
-              <th className="p-3">Order</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stockMovements.map((movement) => (
-              <tr key={movement.id} className="border-t">
-                <td className="p-3">{new Date(movement.created_at).toLocaleString()}</td>
-                <td className="p-3">{movement.product_name}</td>
-                <td className="p-3">{movement.movement_type}</td>
-                <td className="p-3">{movement.quantity_delta}</td>
-                <td className="p-3">{movement.previous_stock}</td>
-                <td className="p-3">{movement.new_stock}</td>
-                <td className="p-3">{movement.order_id ?? "-"}</td>
-              </tr>
-            ))}
-            {stockMovements.length === 0 ? (
-              <tr>
-                <td className="p-3 text-slate-500" colSpan={7}>No stock changes yet.</td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      {/** Stock changes section removed as per request. */}
     </div>
   );
 };
