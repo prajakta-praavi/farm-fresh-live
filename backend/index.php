@@ -8,14 +8,23 @@ require_once __DIR__ . '/auth.php';
 
 startSessionIfNeeded();
 
-$origin = (string) ($_SERVER['HTTP_ORIGIN'] ?? '*');
-if ($origin !== '') {
+// CORS allowlist for production and local admin origins.
+$origin = (string) ($_SERVER['HTTP_ORIGIN'] ?? '');
+$allowedOrigins = [
+    'https://www.rushivanagro.com',
+    'https://rushivanagro.com',
+    'https://api.rushivanagro.com',
+    'http://localhost:5173',
+    'http://localhost:3000',
+];
+if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
 }
 header('Vary: Origin');
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
+header('Access-Control-Max-Age: 86400');
 
 if (methodIs('OPTIONS')) {
     http_response_code(204);
