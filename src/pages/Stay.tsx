@@ -35,7 +35,8 @@ const EXTRA_BED_CHARGE = 1000;
 const MAX_PROPERTY_GUESTS = 15;
 const TENT_RATE_PER_GUEST = 1000;
 
-const getFarmStayGstRate = (nightlyTariff: number) => {
+const getFarmStayGstRate = (guestCount: number, nightlyTariff: number) => {
+  if (guestCount <= 5) return 12;
   if (nightlyTariff < 1000) return 0;
   if (nightlyTariff <= 7500) return 5;
   return 18;
@@ -59,7 +60,7 @@ const getStayPricing = (guestCount: number) => {
   const roomPrice = roomsAllocated * ROOM_BASE_RATE + extraBeds * EXTRA_BED_CHARGE;
   const tentPrice = tentGuests * TENT_RATE_PER_GUEST;
   const subtotalPerNight = roomPrice + tentPrice;
-  const gstRate = getFarmStayGstRate(subtotalPerNight);
+  const gstRate = getFarmStayGstRate(normalizedGuests, subtotalPerNight);
   const gstAmountPerNight = Math.round((subtotalPerNight * gstRate) / 100);
   const totalPerNight = subtotalPerNight + gstAmountPerNight;
   const accommodationType =
