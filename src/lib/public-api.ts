@@ -20,6 +20,7 @@ export interface PublicProduct {
   name: string;
   description?: string;
   image: string;
+  galleryImages?: string[];
   price: number;
   category: string;
   unit: string;
@@ -67,11 +68,30 @@ const makeAbsoluteUrl = (baseUrl: string, value?: string | null): string => {
   return `${baseUrl}/${path.replace(/^\/+/, "")}`;
 };
 
+const normalizeImageUrl = (baseUrl: string, value?: string | null): string => {
+  const path = (value || "").trim();
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) {
+    try {
+      const parsed = new URL(path);
+      if (parsed.pathname.startsWith("/uploads/") && baseUrl) {
+        return `${baseUrl}${parsed.pathname}`;
+      }
+    } catch {
+      return path;
+    }
+    return path;
+  }
+  if (path.startsWith("/uploads/")) return makeAbsoluteUrl(baseUrl, path);
+  return path;
+};
+
 interface ApiProduct {
   id: number | string;
   name: string;
   description?: string;
   image_url?: string;
+  gallery_images?: string[];
   price: number | string;
   category: string;
   unit: string;
@@ -109,11 +129,17 @@ const normalizeVariation = (item: ApiVariation): PublicProductVariation => ({
   term_name: item.term_name || "",
 });
 
-const normalizeProduct = (item: ApiProduct): PublicProduct => ({
+const normalizeProduct = (item: ApiProduct, baseUrl: string): PublicProduct => ({
   id: Number(item.id),
   name: item.name,
   description: item.description || "",
-  image: item.image_url || "",
+  image: normalizeImageUrl(baseUrl, item.image_url),
+  galleryImages: Array.isArray(item.gallery_images)
+    ? item.gallery_images
+        .filter(Boolean)
+        .map((path) => normalizeImageUrl(baseUrl, path))
+        .filter(Boolean)
+    : [],
   price: Number(item.price || 0),
   category: normalizeCategoryName(item.category || ""),
   unit: item.unit || "1 unit",
@@ -142,6 +168,7 @@ const toMockProduct = (item: (typeof mockProducts)[number]): PublicProduct => ({
   name: item.name,
   description: "",
   image: item.image,
+  galleryImages: [],
   price: item.price,
   category: normalizeCategoryName(item.category),
   unit: item.unit,
@@ -194,7 +221,7 @@ export const getPublicProducts = async (): Promise<PublicProduct[]> => {
       return getCachedPublicCatalog();
     }
     const mapped = json
-      .map((item) => markDemoOutOfStock(normalizeProduct(item as ApiProduct)))
+      .map((item) => markDemoOutOfStock(normalizeProduct(item as ApiProduct, API_BASE_URL)))
       .filter((item) => !isExcludedProduct(item));
     if (mapped.length > 0) {
       try {
@@ -217,7 +244,7 @@ export const getPublicProductById = async (id: number): Promise<PublicProduct | 
     if (!response.ok || !json) {
       return getCachedPublicCatalog().find((item) => item.id === id) ?? null;
     }
-    const normalized = markDemoOutOfStock(normalizeProduct(json as ApiProduct));
+    const normalized = markDemoOutOfStock(normalizeProduct(json as ApiProduct, API_BASE_URL));
     if (isExcludedProduct(normalized)) {
       return null;
     }

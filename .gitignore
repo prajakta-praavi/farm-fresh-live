@@ -26,4 +26,5 @@ dist/
 *.zip
 .env*
 backend/.env
+backend/uploads/
 node_modules/

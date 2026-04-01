@@ -793,6 +793,20 @@ function ensureVariationSchema(): void
     }
 }
 
+function ensureProductGallerySchema(): void
+{
+    $pdo = db();
+    $pdo->exec('
+        CREATE TABLE IF NOT EXISTS product_images (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          product_id INT NOT NULL,
+          image_path VARCHAR(255) NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT fk_product_images_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+        )
+    ');
+}
+
 function ensureBlogSchema(): void
 {
     $pdo = db();

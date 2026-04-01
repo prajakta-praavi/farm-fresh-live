@@ -16,6 +16,13 @@ export interface Product {
   created_at: string;
 }
 
+export interface ProductImage {
+  id: number;
+  product_id: number;
+  image_path: string;
+  created_at?: string;
+}
+
 export interface StockMovement {
   id: number;
   product_id: number;

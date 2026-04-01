@@ -76,10 +76,39 @@ const AdminProducts = () => {
   const [form, setForm] = useState<ProductForm>(defaultForm);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryError, setGalleryError] = useState("");
   const [saving, setSaving] = useState(false);
   const isEdit = useMemo(() => Boolean(form.id), [form.id]);
   const categoryOptions = categories.length > 0 ? categories : fallbackCategories;
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryLimit = 5;
+  const remainingGallerySlots = Math.max(0, galleryLimit - galleryImages.length);
+  const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
+  const normalizeImageUrl = (value: string) => {
+    const raw = (value || "").trim();
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) {
+      try {
+        const parsed = new URL(raw);
+        if (parsed.pathname.startsWith("/uploads/") && apiBaseUrl) {
+          return `${apiBaseUrl}${parsed.pathname}`;
+        }
+      } catch {
+        return raw;
+      }
+      return raw;
+    }
+    if (raw.startsWith("/uploads/") && apiBaseUrl) {
+      return `${apiBaseUrl}${raw}`;
+    }
+    return raw;
+  };
 
   const ensureTermsLoaded = async (attributeId: number) => {
     if (!attributeId || termsByAttribute[attributeId]) return;
@@ -102,9 +131,19 @@ const AdminProducts = () => {
     load().catch((err) => setError(err instanceof Error ? err.message : "Failed to load"));
   }, []);
 
+  useEffect(() => {
+    return () => {
+      galleryPreviews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [galleryPreviews]);
+
   const resetEditor = () => {
     setForm(defaultForm);
     setVariations([]);
+    setGalleryFiles([]);
+    setGalleryPreviews([]);
+    setGalleryImages([]);
+    setGalleryError("");
   };
 
   const onSubmit = async (event: React.FormEvent) => {
@@ -150,6 +189,24 @@ const AdminProducts = () => {
         await adminApi.saveProductVariations(productId, validVariations);
       }
 
+      if (productId > 0 && galleryFiles.length > 0) {
+        try {
+          setGalleryUploading(true);
+          const response = await adminApi.uploadProductGallery(productId, galleryFiles);
+          const uploaded = Array.isArray(response.images) ? response.images : [];
+          setGalleryImages(uploaded.map((item) => item.image_path).filter(Boolean));
+          setGalleryFiles([]);
+          setGalleryPreviews([]);
+          if (galleryInputRef.current) {
+            galleryInputRef.current.value = "";
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Gallery upload failed");
+        } finally {
+          setGalleryUploading(false);
+        }
+      }
+
       resetEditor();
       await load();
     } catch (err) {
@@ -176,6 +233,9 @@ const AdminProducts = () => {
 
     setError("");
     try {
+      setGalleryError("");
+      setGalleryFiles([]);
+      setGalleryPreviews([]);
       const data = await adminApi.getProductVariations(product.id);
       const mapped = (Array.isArray(data) ? data : []).map((item) => ({
         id: item.id,
@@ -193,9 +253,13 @@ const AdminProducts = () => {
 
       const uniqueAttributes = Array.from(new Set(mapped.map((row) => Number(row.attribute_id)).filter((id) => id > 0)));
       await Promise.all(uniqueAttributes.map((attributeId) => ensureTermsLoaded(attributeId)));
+
+      const gallery = await adminApi.getProductGallery(product.id);
+      setGalleryImages(Array.isArray(gallery) ? gallery.map((item) => item.image_path).filter(Boolean) : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load product variations");
       setVariations([]);
+      setGalleryImages([]);
     }
   };
 
@@ -227,6 +291,35 @@ const AdminProducts = () => {
         imageInputRef.current.value = "";
       }
     }
+  };
+
+  const onGalleryPick = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    setGalleryError("");
+
+    const nonImages = files.filter((file) => !file.type.startsWith("image/"));
+    if (nonImages.length > 0) {
+      setGalleryError("Only image files are allowed for gallery uploads.");
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = "";
+      }
+      return;
+    }
+
+    if (files.length > remainingGallerySlots) {
+      setGalleryError(`You can upload up to ${galleryLimit} images. ${remainingGallerySlots} slot(s) remaining.`);
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = "";
+      }
+      return;
+    }
+
+    galleryPreviews.forEach((url) => URL.revokeObjectURL(url));
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setGalleryFiles(files);
+    setGalleryPreviews(previews);
   };
 
   const onVariationChange = (rowId: string, key: keyof VariationRow, value: string) => {
@@ -326,9 +419,51 @@ const AdminProducts = () => {
           </div>
           {form.image_url ? (
             <div className="sm:col-span-2">
-              <img src={form.image_url} alt="Product preview" className="h-20 w-20 rounded-md border object-cover" />
+              <img src={normalizeImageUrl(form.image_url)} alt="Product preview" className="h-20 w-20 rounded-md border object-cover" />
             </div>
           ) : null}
+          <div className="sm:col-span-2 space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={onGalleryPick} />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => galleryInputRef.current?.click()}
+                disabled={galleryUploading || remainingGallerySlots === 0}
+              >
+                {galleryUploading ? "Uploading..." : "Upload Gallery Images"}
+              </Button>
+              <span className="text-xs text-slate-600">
+                Up to {galleryLimit} images. {remainingGallerySlots} slot(s) remaining.
+              </span>
+            </div>
+            {galleryError ? <p className="text-xs text-red-600">{galleryError}</p> : null}
+            {galleryPreviews.length > 0 ? (
+              <div>
+                <p className="text-xs text-slate-600 mb-2">Selected previews</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                  {galleryPreviews.map((src) => (
+                    <img key={src} src={src} alt="Gallery preview" className="h-20 w-full rounded-md border object-cover" />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {galleryImages.length > 0 ? (
+              <div>
+                <p className="text-xs text-slate-600 mb-2">Existing gallery images</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                  {galleryImages.map((src) => (
+                    <img
+                      key={src}
+                      src={normalizeImageUrl(src)}
+                      alt="Gallery image"
+                      className="h-20 w-full rounded-md border object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
           <Textarea
             placeholder="Description"
             value={form.description}

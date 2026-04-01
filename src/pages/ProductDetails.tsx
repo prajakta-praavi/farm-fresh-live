@@ -7,6 +7,12 @@ import shopBreadcrumbImage from "@/assets/shop breadcrub main.png";
 import { addToCart } from "@/lib/cart";
 import { getPublicProductById, getPublicProducts, type PublicProduct, type PublicProductVariation } from "@/lib/public-api";
 import { useSeo } from "@/components/SeoManager";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Thumbs } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/thumbs";
 
 const SITE_NAME = "Rushivan Agro";
 const SITE_URL = "https://www.rushivanagro.com";
@@ -31,6 +37,7 @@ const ProductDetails = () => {
   const [product, setProduct] = useState<PublicProduct | null>(null);
   const [allProducts, setAllProducts] = useState<PublicProduct[]>([]);
   const [selectedVariationId, setSelectedVariationId] = useState<number | null>(null);
+  const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
 
   useEffect(() => {
     const productId = Number(id || 0);
@@ -70,6 +77,12 @@ const ProductDetails = () => {
     const otherProducts = allProducts.filter((item) => item.id !== product.id && item.category !== product.category);
     return [...sameCategory, ...otherProducts].slice(0, 4);
   }, [allProducts, product]);
+
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+    const combined = [product.image, ...(product.galleryImages || [])].filter(Boolean);
+    return Array.from(new Set(combined));
+  }, [product]);
 
   const seoData = useMemo(() => {
     if (!product) {
@@ -181,7 +194,54 @@ const ProductDetails = () => {
         />
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            <img src={product.image} alt={product.name} className="w-full rounded-xl border border-border object-cover" />
+            <div className="space-y-4">
+              {galleryImages.length > 1 ? (
+                <>
+                  <Swiper
+                    modules={[Navigation, Thumbs]}
+                    navigation
+                    thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
+                    className="w-full rounded-xl border border-border"
+                  >
+                    {galleryImages.map((image) => (
+                      <SwiperSlide key={image}>
+                        <div className="aspect-[4/3] w-full bg-white">
+                          <img src={image} alt={product.name} className="h-full w-full object-contain" />
+                        </div>
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                  <Swiper
+                    onSwiper={setThumbsSwiper}
+                    modules={[Thumbs]}
+                    watchSlidesProgress
+                    slidesPerView={4}
+                    spaceBetween={12}
+                    className="w-full"
+                    breakpoints={{
+                      0: { slidesPerView: 3 },
+                      640: { slidesPerView: 4 },
+                    }}
+                  >
+                    {galleryImages.map((image) => (
+                      <SwiperSlide key={`${image}-thumb`}>
+                        <div className="h-20 w-full rounded-lg border border-border bg-white p-2">
+                          <img src={image} alt={`${product.name} thumbnail`} className="h-full w-full object-contain" />
+                        </div>
+                      </SwiperSlide>
+                    ))}
+                  </Swiper>
+                </>
+              ) : (
+                <div className="aspect-[4/3] w-full rounded-xl border border-border bg-white">
+                  <img
+                    src={galleryImages[0] || product.image}
+                    alt={product.name}
+                    className="h-full w-full rounded-xl object-contain"
+                  />
+                </div>
+              )}
+            </div>
             <div>
               <p className="inline-flex bg-primary/10 text-primary text-xs px-3 py-1 rounded-full font-medium mb-3">
                 {product.category}

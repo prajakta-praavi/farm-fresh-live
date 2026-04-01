@@ -13,6 +13,7 @@ import type {
   Order,
   PaginatedUsers,
   Product,
+  ProductImage,
   StockMovement,
   ProductVariation,
   UserRole,
@@ -338,6 +339,16 @@ export const adminApi = {
     const formData = new FormData();
     formData.append("image", file);
     return uploadRequest<{ image_url: string }>("/api/uploads", formData, "Image upload failed");
+  },
+  getProductGallery: (productId: number) => request<ProductImage[]>(`/api/products/${productId}/gallery`),
+  uploadProductGallery: async (productId: number, files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("images[]", file));
+    return uploadRequest<{ images: ProductImage[] }>(
+      `/api/products/${productId}/gallery`,
+      formData,
+      "Gallery upload failed"
+    );
   },
 
   getCustomers: (search = "") =>

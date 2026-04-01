@@ -16,6 +16,8 @@ $allowedOrigins = [
     'https://api.rushivanagro.com',
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
 ];
 if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
@@ -103,6 +105,34 @@ function fileUploadErrorMessage(int $errorCode, string $missingFileMessage = 'Im
         UPLOAD_ERR_EXTENSION => 'Image upload failed: blocked by a PHP extension',
         default => 'Image upload failed',
     };
+}
+
+function normalizeUploadedFileList(array $files): array
+{
+    $names = $files['name'] ?? [];
+    $tmpNames = $files['tmp_name'] ?? [];
+    $sizes = $files['size'] ?? [];
+    $errors = $files['error'] ?? [];
+
+    if (!is_array($names)) {
+        return [[
+            'name' => (string) $names,
+            'tmp_name' => (string) ($tmpNames ?? ''),
+            'size' => (int) ($sizes ?? 0),
+            'error' => (int) ($errors ?? UPLOAD_ERR_NO_FILE),
+        ]];
+    }
+
+    $normalized = [];
+    foreach ($names as $index => $name) {
+        $normalized[] = [
+            'name' => (string) $name,
+            'tmp_name' => (string) ($tmpNames[$index] ?? ''),
+            'size' => (int) ($sizes[$index] ?? 0),
+            'error' => (int) ($errors[$index] ?? UPLOAD_ERR_NO_FILE),
+        ];
+    }
+    return $normalized;
 }
 
 function uploadBaseDirectory(): string
@@ -505,6 +535,7 @@ try {
     ensureBlogSchema();
     ensureDefaultCategories();
     ensureVariationSchema();
+    ensureProductGallerySchema();
     ensureDefaultProducts();
     ensureDefaultProductVariations();
     $pdo = db();
@@ -1078,6 +1109,105 @@ try {
         jsonResponse(['success' => true]);
     }
 
+    if (preg_match('#^/api/products/(\d+)/gallery$#', $path, $m) && $method === 'GET') {
+        requireAdmin();
+        $productId = (int) $m[1];
+        $stmt = $pdo->prepare('
+            SELECT id, product_id, image_path, created_at
+            FROM product_images
+            WHERE product_id = ?
+            ORDER BY id ASC
+        ');
+        $stmt->execute([$productId]);
+        jsonResponse($stmt->fetchAll());
+    }
+
+    if (preg_match('#^/api/products/(\d+)/gallery$#', $path, $m) && $method === 'POST') {
+        requireAdmin();
+        $productId = (int) $m[1];
+        if ($productId <= 0) {
+            jsonResponse(['message' => 'Invalid product id'], 422);
+        }
+
+        if (!isset($_FILES['images']) || !is_array($_FILES['images'])) {
+            jsonResponse(['message' => 'Gallery images are required'], 422);
+        }
+
+        $files = array_values(array_filter(
+            normalizeUploadedFileList($_FILES['images']),
+            static fn(array $file): bool => (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE
+        ));
+
+        if (count($files) === 0) {
+            jsonResponse(['message' => 'Gallery images are required'], 422);
+        }
+        if (count($files) > 5) {
+            jsonResponse(['message' => 'You can upload up to 5 gallery images at a time'], 422);
+        }
+
+        $existingStmt = $pdo->prepare('SELECT COUNT(*) FROM product_images WHERE product_id = ?');
+        $existingStmt->execute([$productId]);
+        $existingCount = (int) $existingStmt->fetchColumn();
+        if ($existingCount + count($files) > 5) {
+            jsonResponse(['message' => 'Gallery images limit is 5 per product'], 422);
+        }
+
+        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        foreach ($files as $file) {
+            $errorCode = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+            if ($errorCode !== UPLOAD_ERR_OK) {
+                jsonResponse(['message' => fileUploadErrorMessage($errorCode, 'Gallery image is required')], 422);
+            }
+            $size = (int) ($file['size'] ?? 0);
+            if ($size <= 0 || $size > 5 * 1024 * 1024) {
+                jsonResponse(['message' => 'Each image must be between 1 byte and 5MB'], 422);
+            }
+            $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+            if (!in_array($extension, $allowed, true)) {
+                jsonResponse(['message' => 'Only jpg, jpeg, png, webp files are allowed'], 422);
+            }
+        }
+
+        $uploadDir = uploadBaseDirectory() . '/products/gallery';
+        ensureDirectoryWritable($uploadDir);
+
+        $saved = [];
+        $savedFiles = [];
+        $insertStmt = $pdo->prepare('INSERT INTO product_images (product_id, image_path) VALUES (?, ?)');
+
+        $pdo->beginTransaction();
+        try {
+            foreach ($files as $file) {
+                $extension = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+                $filename = 'gallery_' . $productId . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
+                $targetPath = $uploadDir . '/' . $filename;
+                if (!move_uploaded_file((string) ($file['tmp_name'] ?? ''), $targetPath)) {
+                    throw new RuntimeException('Failed to store uploaded gallery image');
+                }
+
+                $savedFiles[] = $targetPath;
+                $imageUrl = buildUploadUrl('/uploads/products/gallery/' . $filename);
+                $insertStmt->execute([$productId, $imageUrl]);
+                $saved[] = [
+                    'id' => (int) $pdo->lastInsertId(),
+                    'product_id' => $productId,
+                    'image_path' => $imageUrl,
+                ];
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            foreach ($savedFiles as $pathToDelete) {
+                if (is_file($pathToDelete)) {
+                    @unlink($pathToDelete);
+                }
+            }
+            jsonResponse(['message' => $e->getMessage() ?: 'Gallery upload failed'], 500);
+        }
+
+        jsonResponse(['images' => $saved], 201);
+    }
+
     if ($path === '/api/public/products' && $method === 'GET') {
         $rows = $pdo->query('
             SELECT
@@ -1145,6 +1275,13 @@ try {
         ');
         $variationStmt->execute([$id]);
         $row['variations'] = $variationStmt->fetchAll();
+
+        $galleryStmt = $pdo->prepare('SELECT image_path FROM product_images WHERE product_id = ? ORDER BY id ASC');
+        $galleryStmt->execute([$id]);
+        $row['gallery_images'] = array_map(
+            static fn(array $item): string => (string) ($item['image_path'] ?? ''),
+            $galleryStmt->fetchAll()
+        );
         jsonResponse($row);
     }
 
