@@ -22,15 +22,19 @@ const Footer = () => {
               <div className="pl-0 md:pl-6">
                 <div className="mb-5 flex items-center gap-3">
                   <a
-                    href="#"
+                    href="https://www.facebook.com/rushivanaagro"
                     aria-label="Facebook"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3b5998] text-white transition-transform duration-200 hover:scale-105"
                   >
                     <Facebook size={20} />
                   </a>
                   <a
-                    href="#"
+                    href="https://www.instagram.com/rushivan_agro/"
                     aria-label="Instagram"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="flex h-11 w-11 items-center justify-center rounded-full bg-[#6b7280] text-white transition-transform duration-200 hover:scale-105"
                   >
                     <Instagram size={20} />
