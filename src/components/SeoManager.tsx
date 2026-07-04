@@ -8,11 +8,12 @@ const DEFAULT_DESCRIPTION =
   "Rushivan Agro offers farm-fresh dairy, fruits, grains, natural sweetness products, and authentic farm stay experiences.";
 const DEFAULT_OG_IMAGE = `${SITE_URL}/favicon.ico`;
 const DEFAULT_KEYWORDS =
-  "Rushivan Agro, farm fresh products, organic farm, agritourism, farm stay, dairy, grains, pulses, natural sweeteners, strawberries";
+  "Rushivan Agro, farm fresh products, organic farm products online, farm products Maharashtra, organic dairy products, A2 Gir cow ghee, raw honey, natural jaggery, grains and pulses, farm stay near Pune, agritourism Maharashtra, organic strawberries";
 
 type SeoConfig = {
   title: string;
   description: string;
+  keywords?: string;
   robots?: string;
 };
 
@@ -54,6 +55,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
     return {
       title: `${SITE_NAME} | Farm Fresh Products & Agritourism`,
       description: DEFAULT_DESCRIPTION,
+      keywords:
+        "Rushivan Agro, farm fresh products, organic farm products online, farm products Maharashtra, organic dairy products, natural sweeteners, grains and pulses, farm stay near Pune, agritourism Maharashtra",
     };
   }
   if (pathname === "/about") {
@@ -61,6 +64,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `About ${SITE_NAME} | Pure by Nature`,
       description:
         "Learn about Rushivan Agro, our farming values, natural products, and commitment to quality from farm to home.",
+      keywords:
+        "about Rushivan Agro, organic farm Maharashtra, natural farming, farm fresh food, sustainable farming, pure farm products, farm to home products",
     };
   }
   if (pathname === "/shop") {
@@ -68,6 +73,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `Shop Farm Products | ${SITE_NAME}`,
       description:
         "Buy farm-fresh dairy products, fruits, grains, pulses, spices, and natural sweetness products from Rushivan Agro.",
+      keywords:
+        "buy farm fresh products online, organic products online, A2 Gir cow ghee, raw honey, natural jaggery, organic pulses, grains and pulses, organic turmeric, organic strawberry, cow dung diya, cow dung dhoop",
     };
   }
   if (pathname.startsWith("/product/")) {
@@ -75,6 +82,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `Product Details | ${SITE_NAME}`,
       description:
         "View product details, available weight options, stock, and pricing for Rushivan Agro farm products.",
+      keywords:
+        "Rushivan Agro products, farm fresh product details, organic grocery products, natural farm products, farm fresh food online",
     };
   }
   if (pathname === "/stay") {
@@ -82,6 +91,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `Farm Stay | ${SITE_NAME}`,
       description:
         "Book a peaceful farm stay at Rushivan Agro and enjoy nature, fresh food, and countryside experiences.",
+      keywords:
+        "farm stay near Pune, farm stay Maharashtra, agritourism stay, nature stay near Pune, family farm stay, countryside stay, Rushivan Agro farm stay",
     };
   }
   if (pathname === "/corporate-gifting") {
@@ -89,6 +100,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `Corporate Gifting | ${SITE_NAME}`,
       description:
         "Explore premium corporate gifting options with farm-fresh and natural products from Rushivan Agro.",
+      keywords:
+        "corporate gifting Maharashtra, organic gift hampers, farm fresh gift hampers, healthy corporate gifts, natural product gifts, festive gift hampers",
     };
   }
   if (pathname === "/blog") {
@@ -96,12 +109,16 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `Blog | ${SITE_NAME}`,
       description:
         "Read stories, updates, and insights from Rushivan Agro on farming, food, and natural living.",
+      keywords:
+        "organic farming blog, farm fresh food blog, natural living, A2 ghee benefits, farm to table, Gau Seva, healthy food tips",
     };
   }
   if (pathname.startsWith("/blog/")) {
     return {
       title: `Blog Article | ${SITE_NAME}`,
       description: "Explore farm life, healthy food, and natural product insights from the Rushivan Agro blog.",
+      keywords:
+        "Rushivan Agro blog, organic farming articles, healthy food articles, farm life stories, A2 ghee benefits, natural products",
     };
   }
   if (pathname === "/contact") {
@@ -109,6 +126,8 @@ const getSeoConfig = (pathname: string): SeoConfig => {
       title: `Contact Us | ${SITE_NAME}`,
       description:
         "Contact Rushivan Agro for product inquiries, orders, collaborations, and farm stay bookings.",
+      keywords:
+        "contact Rushivan Agro, farm product inquiry, organic products order, farm stay booking, Rushivan Agro contact",
     };
   }
   if (pathname === "/cart") {
@@ -198,7 +217,7 @@ const SeoManager = () => {
       : `${SITE_URL}${pathname === "/" ? "" : pathname}`;
     const ogImage = override?.image || DEFAULT_OG_IMAGE;
     const ogType = override?.ogType || "website";
-    const keywords = override?.keywords || DEFAULT_KEYWORDS;
+    const keywords = seo.keywords || DEFAULT_KEYWORDS;
 
     document.title = seo.title;
     setCanonical(canonicalUrl);
